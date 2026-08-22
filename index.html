@@ -69,13 +69,57 @@
                     comments.push({ id: doc.id, ...doc.data() });
                 });
                 comments.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                renderGuestbookUI(comments);
+                window.firebaseComments = comments;
+                renderGuestbookUI();
             }, (error) => {
                 console.error("Ralat mengambil komen:", error);
             });
         }
 
-        // Simpan Komen Pelawat
+        // Pautan Google Sheet Rasmi
+        const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1WMf65_MqQqEiAsRG6-mVP9vW39YDHaxA4Z6aBkfrSJA/edit?usp=sharing";
+        const GOOGLE_SHEET_ID = "1WMf65_MqQqEiAsRG6-mVP9vW39YDHaxA4Z6aBkfrSJA";
+        window.googleSheetComments = [];
+
+        // Ambil data terus dari Google Sheet secara live via GViz API
+        window.fetchGoogleSheetData = async function() {
+            try {
+                const gvizUrl = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json`;
+                const res = await fetch(gvizUrl);
+                const text = await res.text();
+                // Google GViz pulangkan JSONP-like format, potong wrapper
+                const jsonText = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
+                const data = JSON.parse(jsonText);
+                
+                const rows = data.table.rows || [];
+                const sheetComments = [];
+
+                rows.forEach((row, index) => {
+                    if (index === 0 && row.c[0]?.v?.toString().toLowerCase().includes('nama')) return; // langkau header
+                    const nama = row.c[0]?.v || row.c[0]?.f || '';
+                    const sekolah = row.c[1]?.v || row.c[1]?.f || 'Pelawat Google Sheet';
+                    const mesej = row.c[2]?.v || row.c[2]?.f || '';
+                    const tarikh = row.c[3]?.v || row.c[3]?.f || 'Google Sheet';
+
+                    if (nama && mesej) {
+                        sheetComments.push({
+                            nama: String(nama),
+                            sekolah: String(sekolah),
+                            mesej: String(mesej),
+                            timestamp: tarikh,
+                            source: 'Google Sheet'
+                        });
+                    }
+                });
+
+                window.googleSheetComments = sheetComments;
+                renderGuestbookUI();
+            } catch (err) {
+                console.log("Notis Google Sheet GViz:", err);
+            }
+        };
+
+        // Simpan Komen Pelawat (Sokongan Firebase + Google Sheet Sync)
         window.hantarKomen = async function() {
             const nama = document.getElementById('pelawat-nama').value.trim();
             const sekolah = document.getElementById('pelawat-sekolah').value.trim();
@@ -86,29 +130,39 @@
                 return;
             }
 
-            if (!window.currentUser) {
-                showModalAlert("Sistem belum bersedia. Sila cuba seketika lagi.");
-                return;
-            }
-
             const btn = document.getElementById('btn-hantar-pelawat');
             btn.disabled = true;
             btn.innerText = "Mengirim...";
 
             try {
-                const guestbookRef = collection(db, 'artifacts', appId, 'public', 'data', 'guestbook');
-                await addDoc(guestbookRef, {
-                    nama: nama,
-                    sekolah: sekolah || 'Pengembara Bahasa',
-                    mesej: mesej,
-                    timestamp: Date.now(),
-                    userId: window.currentUser.uid
-                });
+                // 1. Simpan ke Firebase Firestore
+                if (window.currentUser) {
+                    const guestbookRef = collection(db, 'artifacts', appId, 'public', 'data', 'guestbook');
+                    await addDoc(guestbookRef, {
+                        nama: nama,
+                        sekolah: sekolah || 'Pengembara Bahasa',
+                        mesej: mesej,
+                        timestamp: Date.now(),
+                        userId: window.currentUser.uid
+                    });
+                }
+
+                // 2. Cuba hantar data ke Google Apps Script / Form webhook jika dikonfigurasi
+                const appScriptUrl = localStorage.getItem('jebat_apps_script_url');
+                if (appScriptUrl) {
+                    fetch(appScriptUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ nama, sekolah, mesej, tarikh: new Date().toLocaleString('ms-MY') })
+                    }).catch(e => console.log(e));
+                }
 
                 document.getElementById('pelawat-nama').value = '';
                 document.getElementById('pelawat-sekolah').value = '';
                 document.getElementById('pelawat-mesej').value = '';
-                showModalAlert("✨ Ucapan anda berjaya disimpan ke dalam Lembaran Pelawat Awan!");
+                showModalAlert("✨ Ucapan anda berjaya dihantar dan direkodkan!");
+                window.fetchGoogleSheetData();
             } catch (e) {
                 console.error("Ralat menyimpan dokumen:", e);
                 showModalAlert("Gagal menyimpan. Sila cuba lagi.");
@@ -324,10 +378,11 @@
                         <span class="text-3xl">🍄</span>
                         <div>
                             <h2 class="text-xl sm:text-2xl font-black text-amber-300 font-cinzel">Zon JeBaT: Kembara Fantasi</h2>
-                            <p class="text-xs text-slate-400">Bergerak guna kekunci ⬅️ ➡️ & Lompat ⬆️ untuk buka blok [?] magis</p>
+                            <p class="text-xs text-slate-400">Guna kekunci ⬅️ ➡️ & Lompat ⬆️ untuk buka blok [?] & capai Bendera Penamat! 🏁</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-4 bg-slate-900/80 px-4 py-2 rounded-2xl border border-white/10 font-mono text-sm">
+                        <div>Soalan: <span id="game-progress" class="text-cyan-400 font-bold">0 / 10</span></div>
                         <div>Mata: <span id="game-score" class="text-amber-400 font-bold">0</span></div>
                         <div>Nyawa: <span id="game-lives" class="text-red-400 font-bold">❤️ 3</span></div>
                     </div>
@@ -353,13 +408,51 @@
                             <span class="bg-amber-500/20 text-amber-300 text-xs font-bold px-3 py-1 rounded-full border border-amber-500/30">
                                 ❓ Cabaran Blok Magis
                             </span>
-                            <span class="text-xs text-slate-400 font-medium">Bahasa Melayu KSSR</span>
+                            <span id="game-modal-qnum" class="text-xs text-slate-400 font-medium">Soalan 1 / 10</span>
                         </div>
                         <h3 id="game-question-text" class="text-base sm:text-lg font-bold text-white mb-6 leading-relaxed">
                             Soalan...
                         </h3>
                         <div id="game-options" class="space-y-2.5 mb-4">
                             <!-- Pilihan -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Penamat Permainan (Game Finish / Game Over Modal) -->
+                <div id="game-finish-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-lg z-50 flex items-center justify-center p-4 hidden">
+                    <div class="glass-card text-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center border border-amber-400/60 glow-gold">
+                        <div id="finish-icon" class="text-5xl mb-3">🏆</div>
+                        <h3 id="finish-title" class="text-2xl font-black text-amber-300 font-cinzel mb-1">Kembara Tamat!</h3>
+                        <p id="finish-subtitle" class="text-xs text-slate-400 mb-6">Penilaian Prestasi Cabaran Penjodoh Bilangan</p>
+
+                        <!-- Paparan Bintang -->
+                        <div class="bg-slate-900/80 p-5 rounded-2xl border border-white/10 mb-6">
+                            <div class="text-xs text-slate-400 uppercase tracking-widest font-bold mb-2">Pencapaian Bintang</div>
+                            <div id="star-rating-display" class="text-3xl sm:text-4xl tracking-wider my-2">
+                                ⭐⭐⭐⭐⭐
+                            </div>
+                            <p id="star-text" class="text-xs font-bold text-emerald-400 mt-1">Cemerlang Terbilang! (100%)</p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 mb-6 bg-slate-900/50 p-3 rounded-xl border border-white/5 text-xs">
+                            <div>
+                                <span class="text-slate-400 block">Jumlah Mata</span>
+                                <span id="final-game-score" class="text-lg font-bold text-amber-400">250</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 block">Soalan Dijawab</span>
+                                <span id="final-game-questions" class="text-lg font-bold text-cyan-400">10 / 10</span>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <button onclick="initGame(); closeModal('game-finish-modal');" class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl shadow-lg transition text-sm flex items-center justify-center gap-2">
+                                🔄 Main Semula
+                            </button>
+                            <button onclick="showSection('kuiz'); closeModal('game-finish-modal');" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition text-sm flex items-center justify-center gap-2">
+                                🏆 Sijil Kuiz
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -527,14 +620,20 @@
         <!-- BAHAGIAN 5: ZON PELAWAT -->
         <section id="sec-pelawat" class="tab-content hidden">
             <div class="glass-card rounded-3xl p-6 sm:p-8 border border-emerald-500/30 glow-emerald">
-                <div class="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
-                    <div class="p-3 bg-emerald-500/20 border border-emerald-500/30 rounded-2xl text-emerald-400">
-                        <i data-lucide="message-square" class="w-7 h-7"></i>
+                <div class="flex flex-wrap justify-between items-center mb-6 border-b border-white/10 pb-4 gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="p-3 bg-emerald-500/20 border border-emerald-500/30 rounded-2xl text-emerald-400">
+                            <i data-lucide="message-square" class="w-7 h-7"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-white font-cinzel">Zon Pelawat & Komen Awan</h2>
+                            <p class="text-xs text-slate-400">Tinggalkan jejak & ucapan anda yang tersimpan dalam Google Sheet Rasmi!</p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 class="text-2xl font-bold text-white font-cinzel">Zon Pelawat & Komen Awan</h2>
-                        <p class="text-xs text-slate-400">Tinggalkan jejak, maklum balas atau sokongan anda ke dalam lembaran data pelawat web ini!</p>
-                    </div>
+                    <!-- Pautan Terus Google Sheet -->
+                    <a href="https://docs.google.com/spreadsheets/d/1WMf65_MqQqEiAsRG6-mVP9vW39YDHaxA4Z6aBkfrSJA/edit?usp=sharing" target="_blank" class="px-4 py-2 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-bold flex items-center gap-2 transition shadow">
+                        <span>📊</span> Buka Google Sheet Rasmi <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                    </a>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -566,7 +665,9 @@
                     <div class="lg:col-span-2">
                         <h3 class="text-base font-bold text-white mb-4 flex items-center justify-between">
                             <span class="flex items-center gap-2"><i data-lucide="list" class="w-4 h-4 text-emerald-400"></i> Lembaran Komen Pelawat</span>
-                            <span class="text-xs text-emerald-400 bg-emerald-950 px-2.5 py-1 rounded-full border border-emerald-500/30">Disimpan ke Sheet Awan</span>
+                            <span class="text-xs text-emerald-400 bg-emerald-950 px-2.5 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Live Google Sheet & Firebase
+                            </span>
                         </h3>
 
                         <div id="guestbook-list" class="space-y-3 max-h-[450px] overflow-y-auto pr-2">
@@ -739,12 +840,29 @@
         // Permainan Mario Fantasi
         let canvas, ctx;
         let mario = { x: 50, y: 300, width: 30, height: 40, vx: 0, vy: 0, grounded: false, speed: 4, jumpPower: -11 };
+        let cameraX = 0;
         let gravity = 0.5;
         let score = 0;
         let lives = 3;
+        let answeredQuestionsCount = 0;
         let blocks = [];
+        let flagpole = { x: 2200, y: 140, width: 20, height: 200, hit: false };
         let keys = {};
         let gameLoopId;
+
+        // Koleksi 10 Soalan DSKP Bahasa Melayu
+        const gameQuestions = [
+            { q: "Pilih penjodoh bilangan bagi 'Dua ___ Meriam'.", opts: ["Batang", "Laras", "Pucuk"], ans: 1 },
+            { q: "Kakak membeli tiga ___ cincin emas di kedai.", opts: ["Bentuk", "Biji", "Utas"], ans: 0 },
+            { q: "Posmen menghantar dua ___ surat rasmi.", opts: ["Keping", "Pucuk", "Batang"], ans: 1 },
+            { q: "Adik menjumpai se___ benang di lantai.", opts: ["Utas", "Urat", "Bilah"], ans: 1 },
+            { q: "Pak Cik Hassan menebang tiga ___ pokok kelapa.", opts: ["Batang", "Pucuk", "Bilah"], ans: 0 },
+            { q: "Ibu menghidangkan lima ___ biskut coklat.", opts: ["Keping", "Bentuk", "Naskhah"], ans: 0 },
+            { q: "Pemburu itu membawa selaras senapang dan se___ pisau.", opts: ["Bilah", "Batang", "Pucuk"], ans: 0 },
+            { q: "Nenek memakai se___ rantai mutiara yang indah.", opts: ["Utas", "Urat", "Laras"], ans: 0 },
+            { q: "Ibu membeli tiga ___ epal merah di pasar.", opts: ["Biji", "Ekor", "Bentuk"], ans: 0 },
+            { q: "Pengarang itu menulis senaskhah ___ baharu.", opts: ["Buku", "Rumah", "Cincin"], ans: 0 }
+        ];
 
         function initGame() {
             canvas = document.getElementById('marioCanvas');
@@ -754,17 +872,31 @@
             mario.y = 300;
             mario.vx = 0;
             mario.vy = 0;
+            cameraX = 0;
             score = 0;
             lives = 3;
+            answeredQuestionsCount = 0;
+
             document.getElementById('game-score').innerText = score;
             document.getElementById('game-lives').innerText = '❤️ ' + lives;
+            document.getElementById('game-progress').innerText = `0 / ${gameQuestions.length}`;
 
-            blocks = [
-                { x: 180, y: 240, width: 36, height: 36, hit: false, questionIndex: 0 },
-                { x: 340, y: 200, width: 36, height: 36, hit: false, questionIndex: 1 },
-                { x: 500, y: 240, width: 36, height: 36, hit: false, questionIndex: 2 },
-                { x: 650, y: 180, width: 36, height: 36, hit: false, questionIndex: 3 }
-            ];
+            // Susun 10 Blok Soalan sepanjang peta
+            blocks = [];
+            const blockSpacing = 190;
+            for(let i = 0; i < gameQuestions.length; i++) {
+                blocks.push({
+                    x: 200 + (i * blockSpacing),
+                    y: (i % 2 === 0) ? 230 : 190,
+                    width: 38,
+                    height: 38,
+                    hit: false,
+                    questionIndex: i
+                });
+            }
+
+            flagpole.x = 200 + (gameQuestions.length * blockSpacing) + 150;
+            flagpole.hit = false;
 
             window.onkeydown = (e) => keys[e.code] = true;
             window.onkeyup = (e) => keys[e.code] = false;
@@ -779,6 +911,8 @@
             const btnLeft = document.getElementById('btn-left');
             const btnRight = document.getElementById('btn-right');
             const btnJump = document.getElementById('btn-jump');
+
+            if (!btnLeft) return;
 
             btnLeft.ontouchstart = (e) => { e.preventDefault(); keys['ArrowLeft'] = true; };
             btnLeft.ontouchend = () => keys['ArrowLeft'] = false;
@@ -804,6 +938,10 @@
             mario.x += mario.vx;
             mario.y += mario.vy;
 
+            // Kamera mengekor Mario
+            cameraX = mario.x - 150;
+            if (cameraX < 0) cameraX = 0;
+
             if (mario.y + mario.height >= 340) {
                 mario.y = 340 - mario.height;
                 mario.vy = 0;
@@ -811,14 +949,14 @@
             }
 
             if (mario.x < 0) mario.x = 0;
-            if (mario.x + mario.width > canvas.width) mario.x = canvas.width - mario.width;
 
+            // Semakan pelanggaran blok [?]
             blocks.forEach(b => {
                 if (!b.hit &&
                     mario.x + mario.width > b.x &&
                     mario.x < b.x + b.width &&
                     mario.y <= b.y + b.height &&
-                    mario.y >= b.y + b.height - 10 &&
+                    mario.y >= b.y + b.height - 12 &&
                     mario.vy < 0) {
                         b.hit = true;
                         mario.vy = 2;
@@ -826,75 +964,124 @@
                 }
             });
 
+            // Semakan Tiang Bendera Penamat
+            if (!flagpole.hit && mario.x + mario.width >= flagpole.x) {
+                flagpole.hit = true;
+                finishGame(true);
+                return;
+            }
+
             renderGame();
-            gameLoopId = requestAnimationFrame(gameUpdate);
+
+            if (lives > 0) {
+                gameLoopId = requestAnimationFrame(gameUpdate);
+            }
         }
 
         function renderGame() {
             ctx.fillStyle = '#0b1329';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+
+            // Bintang & Latar Belakang
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(100, 50, 2, 2);
-            ctx.fillRect(300, 80, 3, 3);
-            ctx.fillRect(600, 40, 2, 2);
+            for(let i = 0; i < 40; i++) {
+                ctx.fillRect((i * 90) % (flagpole.x + 400), (i * 37) % 200 + 20, (i%2)+1, (i%2)+1);
+            }
 
+            // Tanah Magis
             ctx.fillStyle = '#10b981';
-            ctx.fillRect(0, 340, canvas.width, 10);
+            ctx.fillRect(0, 340, flagpole.x + 500, 10);
             ctx.fillStyle = '#064e3b';
-            ctx.fillRect(0, 350, canvas.width, 50);
+            ctx.fillRect(0, 350, flagpole.x + 500, 50);
 
+            // Blok Soalan [?]
             blocks.forEach(b => {
                 if(b.hit) {
                     ctx.fillStyle = '#334155';
                     ctx.fillRect(b.x, b.y, b.width, b.height);
+                    ctx.strokeStyle = '#64748b';
+                    ctx.strokeRect(b.x, b.y, b.width, b.height);
                 } else {
                     ctx.fillStyle = '#f59e0b';
                     ctx.fillRect(b.x, b.y, b.width, b.height);
+                    ctx.strokeStyle = '#fef08a';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(b.x, b.y, b.width, b.height);
+
                     ctx.fillStyle = '#000000';
-                    ctx.font = 'bold 18px sans-serif';
-                    ctx.fillText('?', b.x + 13, b.y + 24);
+                    ctx.font = 'bold 20px sans-serif';
+                    ctx.fillText('?', b.x + 13, b.y + 26);
                 }
             });
 
+            // Tiang Bendera Penamat 🏁
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillRect(flagpole.x, flagpole.y, flagpole.width, flagpole.height);
+            ctx.fillStyle = '#f59e0b';
+            ctx.beginPath();
+            ctx.arc(flagpole.x + 10, flagpole.y, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Bendera
+            ctx.fillStyle = '#10b981';
+            ctx.beginPath();
+            ctx.moveTo(flagpole.x + flagpole.width, flagpole.y + 10);
+            ctx.lineTo(flagpole.x + flagpole.width + 45, flagpole.y + 30);
+            ctx.lineTo(flagpole.x + flagpole.width, flagpole.y + 50);
+            ctx.closePath();
+            ctx.fill();
+
+            // Mario / Watak JEBAT
             ctx.fillStyle = '#10b981';
             ctx.fillRect(mario.x, mario.y, mario.width, mario.height);
             ctx.fillStyle = '#f59e0b';
             ctx.fillRect(mario.x - 2, mario.y, mario.width + 4, 8);
-        }
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(mario.x + 18, mario.y + 12, 6, 6);
 
-        const gameQuestions = [
-            { q: "Pilih penjodoh bilangan bagi 'Sebabak Meriam'.", opts: ["Batang", "Laras", "Pucuk"], ans: 1 },
-            { q: "Kakak membeli tiga ___ cincin emas.", opts: ["Bentuk", "Biji", "Utas"], ans: 0 },
-            { q: "Posmen menghantar dua ___ surat rasmi.", opts: ["Keping", "Pucuk", "Batang"], ans: 1 },
-            { q: "Adik menjumpai se___ benang di lantai.", opts: ["Utas", "Urat", "Bilah"], ans: 1 }
-        ];
+            ctx.restore();
+        }
 
         function triggerGameQuestion(block) {
             const qData = gameQuestions[block.questionIndex] || gameQuestions[0];
             const modal = document.getElementById('game-modal');
             const qText = document.getElementById('game-question-text');
             const optsContainer = document.getElementById('game-options');
+            const qNumText = document.getElementById('game-modal-qnum');
 
+            if (qNumText) qNumText.innerText = `Soalan ${block.questionIndex + 1} / ${gameQuestions.length}`;
             qText.innerText = qData.q;
             optsContainer.innerHTML = '';
 
             qData.opts.forEach((opt, idx) => {
                 const btn = document.createElement('button');
-                btn.className = "w-full text-left p-3 rounded-xl border border-white/10 hover:border-amber-400 hover:bg-amber-500/10 font-semibold text-slate-200 transition text-sm flex justify-between items-center";
-                btn.innerHTML = `<span>${opt}</span> <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>`;
+                btn.className = "w-full text-left p-3.5 rounded-xl border border-white/10 hover:border-amber-400 hover:bg-amber-500/10 font-semibold text-slate-200 transition text-sm flex justify-between items-center";
+                btn.innerHTML = `<span>${String.fromCharCode(65 + idx)}. ${opt}</span> <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>`;
                 btn.onclick = () => {
+                    answeredQuestionsCount++;
+                    document.getElementById('game-progress').innerText = `${answeredQuestionsCount} / ${gameQuestions.length}`;
+
                     if(idx === qData.ans) {
                         score += 25;
                         document.getElementById('game-score').innerText = score;
-                        showModalAlert("🎉 TAHNIAH! Jawapan Betul (+25 Mata)");
+                        showModalAlert("🎉 TAHNIAH! Jawapan Anda Betul (+25 Mata)");
                     } else {
                         lives -= 1;
                         document.getElementById('game-lives').innerText = '❤️ ' + lives;
                         showModalAlert("❌ ALAMAK! Jawapan Kurang Tepat (-1 Nyawa)");
                     }
+
                     modal.classList.add('hidden');
                     lucide.createIcons();
+
+                    if (lives <= 0) {
+                        finishGame(false);
+                    } else if (answeredQuestionsCount >= gameQuestions.length) {
+                        finishGame(true);
+                    }
                 };
                 optsContainer.appendChild(btn);
             });
@@ -903,139 +1090,87 @@
             lucide.createIcons();
         }
 
-        // Modul Uji Minda
-        let currentQuizLevel = 'mudah';
-        let currentQuizQuestions = [];
-        let currentQIndex = 0;
-        let userAnswers = [];
+        // Fungsi Penamat Permainan (Game Finish / Game Over with Stars ⭐)
+        function finishGame(isSuccess) {
+            if (gameLoopId) cancelAnimationFrame(gameLoopId);
 
-        function startQuiz() {
-            const name = document.getElementById('student-name').value.trim();
-            const sClass = document.getElementById('student-class').value.trim();
+            const modal = document.getElementById('game-finish-modal');
+            const title = document.getElementById('finish-title');
+            const subtitle = document.getElementById('finish-subtitle');
+            const icon = document.getElementById('finish-icon');
+            const starDisplay = document.getElementById('star-rating-display');
+            const starText = document.getElementById('star-text');
 
-            if(!name || !sClass) {
-                showModalAlert("Sila masukkan Nama Murid dan Kelas terlebih dahulu!");
-                return;
-            }
+            document.getElementById('final-game-score').innerText = score;
+            document.getElementById('final-game-questions').innerText = `${answeredQuestionsCount} / ${gameQuestions.length}`;
 
-            const levelRadios = document.getElementsByName('kuiz-level');
-            for(let r of levelRadios) {
-                if(r.checked) currentQuizLevel = r.value;
-            }
+            // Pengiraan Bintang (1 hingga 5 Bintang ⭐)
+            const maxScore = gameQuestions.length * 25;
+            const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+            let stars = "";
+            let starLabel = "";
 
-            currentQuizQuestions = quizData[currentQuizLevel];
-            currentQIndex = 0;
-            userAnswers = [];
-
-            document.getElementById('kuiz-setup-card').classList.add('hidden');
-            document.getElementById('kuiz-play-card').classList.remove('hidden');
-            document.getElementById('kuiz-result-card').classList.add('hidden');
-
-            renderQuizQuestion();
-        }
-
-        function renderQuizQuestion() {
-            const q = currentQuizQuestions[currentQIndex];
-            document.getElementById('quiz-progress-text').innerText = `Soalan ${currentQIndex + 1} / ${currentQuizQuestions.length}`;
-            document.getElementById('quiz-level-badge').innerText = `Aras ${currentQuizLevel}`;
-            document.getElementById('quiz-question').innerText = `${currentQIndex + 1}. ${q.q}`;
-
-            const optsContainer = document.getElementById('quiz-options');
-            optsContainer.innerHTML = '';
-            document.getElementById('quiz-next-btn').classList.add('hidden');
-
-            q.options.forEach((opt, idx) => {
-                const btn = document.createElement('button');
-                btn.className = "w-full text-left p-3.5 rounded-xl border border-white/10 hover:bg-slate-800/80 font-medium text-slate-200 transition flex items-center gap-3 text-sm";
-                btn.innerHTML = `<span class="w-6 h-6 rounded-full bg-slate-800 border border-white/10 text-slate-300 flex items-center justify-center font-bold text-xs">${String.fromCharCode(65 + idx)}</span> ${opt}`;
-                btn.onclick = () => selectQuizOption(idx, btn);
-                optsContainer.appendChild(btn);
-            });
-        }
-
-        let selectedOptionForCurrentQ = null;
-
-        function selectQuizOption(optIdx, btnElement) {
-            selectedOptionForCurrentQ = optIdx;
-            const allBtns = document.getElementById('quiz-options').children;
-            for(let b of allBtns) {
-                b.classList.remove('border-purple-500', 'bg-purple-950/40');
-                b.classList.add('border-white/10');
-            }
-            btnElement.classList.add('border-purple-500', 'bg-purple-950/40');
-            document.getElementById('quiz-next-btn').classList.remove('hidden');
-        }
-
-        function nextQuizQuestion() {
-            userAnswers.push(selectedOptionForCurrentQ);
-            currentQIndex++;
-
-            if(currentQIndex < currentQuizQuestions.length) {
-                renderQuizQuestion();
+            if (percentage >= 90) {
+                stars = "⭐⭐⭐⭐⭐";
+                starLabel = "Cemerlang Terbilang! (5 Bintang)";
+            } else if (percentage >= 70) {
+                stars = "⭐⭐⭐⭐☆";
+                starLabel = "Sangat Baik! (4 Bintang)";
+            } else if (percentage >= 50) {
+                stars = "⭐⭐⭐☆☆";
+                starLabel = "Baik! (3 Bintang)";
+            } else if (percentage >= 30) {
+                stars = "⭐⭐☆☆☆";
+                starLabel = "Boleh Dipertingkatkan (2 Bintang)";
             } else {
-                finishQuiz();
+                stars = "⭐☆☆☆☆";
+                starLabel = "Teruskan Usaha! (1 Bintang)";
             }
+
+            if (isSuccess && lives > 0) {
+                icon.innerText = "🏆";
+                title.innerText = "Tahniah! Kembara Tamat!";
+                subtitle.innerText = "Anda berjaya menyelesaikan cabaran Zon JeBaT!";
+            } else {
+                icon.innerText = "💀";
+                title.innerText = "Kembara Terhenti!";
+                subtitle.innerText = "Nyawa anda telah habis. Cuba lagi untuk skor penuh!";
+            }
+
+            starDisplay.innerText = stars;
+            starText.innerText = `${starLabel} (${Math.round(percentage)}%)`;
+
+            modal.classList.remove('hidden');
         }
 
-        function finishQuiz() {
-            let correctCount = 0;
-            currentQuizQuestions.forEach((q, i) => {
-                if(userAnswers[i] === q.ans) correctCount++;
-            });
-
-            const scorePercent = Math.round((correctCount / currentQuizQuestions.length) * 100);
-
-            document.getElementById('kuiz-play-card').classList.add('hidden');
-            document.getElementById('kuiz-result-card').classList.remove('hidden');
-
-            document.getElementById('quiz-score-display').innerText = `${correctCount} / ${currentQuizQuestions.length} (${scorePercent}%)`;
-
-            const name = document.getElementById('student-name').value;
-            const sClass = document.getElementById('student-class').value;
-            const today = new Date().toISOString().split('T')[0];
-
-            document.getElementById('cert-name').innerText = name;
-            document.getElementById('cert-class').innerText = `Kelas: ${sClass}`;
-            document.getElementById('cert-score').innerText = `${scorePercent}%`;
-            document.getElementById('cert-level').innerText = `Aras ${currentQuizLevel.toUpperCase()}`;
-            document.getElementById('cert-date').innerText = `Tarikh: ${today}`;
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
         }
 
-        function resetQuiz() {
-            document.getElementById('kuiz-result-card').classList.add('hidden');
-            document.getElementById('kuiz-setup-card').classList.remove('hidden');
-        }
-
-        function downloadCertificate() {
-            const certElement = document.getElementById('certificate-template');
-            html2canvas(certElement, { scale: 2, useCORS: true }).then(canvas => {
-                const link = document.createElement('a');
-                const studentName = document.getElementById('student-name').value || 'Murid';
-                link.download = `Sijil_JEBAT_${studentName.replace(/\s+/g, '_')}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            });
-        }
-
-        // Paparan Senarai Komen Pelawat
-        function renderGuestbookUI(comments) {
+        // Paparan Senarai Komen Pelawat (Penggabungan Firestore + Google Sheet)
+        function renderGuestbookUI() {
             const container = document.getElementById('guestbook-list');
             if(!container) return;
 
-            if (comments.length === 0) {
+            const allComments = [...(window.googleSheetComments || []), ...(window.firebaseComments || [])];
+
+            if (allComments.length === 0) {
                 container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">Belum ada ucapan pelawat. Jadilah yang pertama! ✨</div>`;
                 return;
             }
 
             container.innerHTML = '';
-            comments.forEach(c => {
-                const tarikh = c.timestamp ? new Date(c.timestamp).toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Baru sahaja';
+            allComments.forEach(c => {
+                const tarikh = typeof c.timestamp === 'number' ? new Date(c.timestamp).toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric' }) : (c.timestamp || 'Baru sahaja');
+                const isGoogleSheet = c.source === 'Google Sheet';
+
                 const card = `
                     <div class="bg-slate-900/60 p-4 rounded-xl border border-white/5 space-y-1 hover:border-emerald-500/30 transition">
                         <div class="flex justify-between items-start">
                             <div class="font-bold text-emerald-300 text-xs sm:text-sm flex items-center gap-1.5">
-                                <span>👤</span> ${escapeHtml(c.nama)} 
+                                <span>${isGoogleSheet ? '📊' : '👤'}</span> ${escapeHtml(c.nama)} 
                                 <span class="text-[10px] text-slate-400 font-normal">(${escapeHtml(c.sekolah)})</span>
+                                ${isGoogleSheet ? '<span class="text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-mono">Sheet</span>' : ''}
                             </div>
                             <span class="text-[10px] text-slate-500">${tarikh}</span>
                         </div>
@@ -1048,7 +1183,7 @@
 
         function escapeHtml(text) {
             if (!text) return '';
-            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
 
         window.onload = function() {
@@ -1056,6 +1191,7 @@
             loadNota();
             loadJelajahButtons();
             renderJelajahDisplay();
+            window.fetchGoogleSheetData();
         };
     </script>
 </body>
