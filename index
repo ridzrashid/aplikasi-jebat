@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JEBAT - Jejak Bahasa Tercinta (Edisi Fantasi)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- html2canvas untuk muat turun sijil -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Google Fonts: Plus Jakarta Sans & Cinzel Decorative -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK (Modular via CDN for HTML) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Konfigurasi Firebase Persekitaran
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "demo-key",
+            authDomain: "demo.firebaseapp.com",
+            projectId: "demo-project",
+            storageBucket: "demo.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:demo"
+        };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'jebat-app-default';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.appId = appId;
+
+        // Logik Log Masuk Firebase
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.error("Auth error:", err);
+            }
+        }
+        initAuth();
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                window.currentUser = user;
+                listenToGuestbook();
+            }
+        });
+
+        // Dapatkan data Zon Pelawat (Sheet) secara Real-Time
+        function listenToGuestbook() {
+            if (!window.currentUser) return;
+            // Strict Path mengikut Rule 1
+            const guestbookRef = collection(db, 'artifacts', appId, 'public', 'data', 'guestbook');
+
+            onSnapshot(guestbookRef, (snapshot) => {
+                const comments = [];
+                snapshot.forEach((doc) => {
+                    comments.push({ id: doc.id, ...doc.data() });
+                });
+                // Isipadu data mengikut tarikh terkini
+                comments.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                renderGuestbookUI(comments);
+            }, (error) => {
+                console.error("Error fetching guestbook:", error);
+            });
+        }
+
+        // Simpan komen ke Sheet (Firestore)
+        window.hantarKomen = async function() {
+            const nama = document.getElementById('pelawat-nama').value.trim();
+            const sekolah = document.getElementById('pelawat-sekolah').value.trim();
+            const mesej = document.getElementById('pelawat-mesej').value.trim();
+
+            if (!nama || !mesej) {
+                showModalAlert("Sila isi nama dan mesej anda sebelum dihantar!");
+                return;
+            }
+
+            if (!window.currentUser) {
+                showModalAlert("Pangkalan data belum sedia. Sila cuba lagi sebentar.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-hantar-pelawat');
+            btn.disabled = true;
+            btn.innerText = "Mengirim...";
+
+            try {
+                const guestbookRef = collection(db, 'artifacts', appId, 'public', 'data', 'guestbook');
+                await addDoc(guestbookRef, {
+                    nama: nama,
+                    sekolah: sekolah || 'Pengembara Bahasa',
+                    mesej: mesej,
+                    timestamp: Date.now(),
+                    userId: window.currentUser.uid
+                });
+
+                document.getElementById('pelawat-nama').value = '';
+                document.getElementById('pelawat-sekolah').value = '';
+                document.getElementById('pelawat-mesej').value = '';
+                showModalAlert("✨ Komen anda berjaya disimpan ke dalam Lembaran Pelawat Awan!");
+            } catch (e) {
+                console.error("Error adding doc:", e);
+                showModalAlert("Gagal menyimpan. Sila cuba lagi.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Hantar Ucapan Magic ✨";
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #090d16;
+            color: #f1f5f9;
+        }
+        .font-cinzel {
+            font-family: 'Cinzel Decorative', serif;
+        }
+        /* Glassmorphism Styling */
+        .glass-card {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .glass-nav {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glow-emerald {
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.25);
+        }
+        .glow-gold {
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.3);
+        }
+        .glow-cyan {
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.3);
+        }
+        canvas {
+            image-rendering: pixelated;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #10b981;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between relative overflow-x-hidden">
+
+    <!-- Visual Magic Ambient Glow Background -->
+    <div class="fixed top-0 left-1/4 w-96 h-96 bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="fixed bottom-0 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="fixed top-1/2 right-10 w-80 h-80 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="glass-nav sticky top-0 z-50 transition-all">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+            
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="showSection('utama')">
+                <div class="relative">
+                    <div class="absolute -inset-1 rounded-2xl bg-gradient-to-r from-emerald-500 to-amber-400 opacity-75 blur"></div>
+                    <div class="relative bg-slate-900 p-2.5 rounded-2xl text-2xl border border-white/20">
+                        🏹
+                    </div>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-amber-300 to-cyan-400 font-cinzel">JEBAT</h1>
+                    <p class="text-[10px] text-emerald-400 font-semibold tracking-wider -mt-1 uppercase">Jejak Bahasa Tercinta</p>
+                </div>
+            </div>
+
+            <!-- Navigasi Menu Fantasi -->
+            <nav class="flex flex-wrap gap-1.5 sm:gap-2">
+                <button onclick="showSection('nota')" id="nav-nota" class="nav-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-white/10">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-emerald-400"></i> Nota Magis
+                </button>
+                <button onclick="showSection('jelajah')" id="nav-jelajah" class="nav-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-white/10">
+                    <i data-lucide="compass" class="w-4 h-4 text-cyan-400"></i> Jelajah Bahasa
+                </button>
+                <button onclick="showSection('game')" id="nav-game" class="nav-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 hover:opacity-90 shadow-lg glow-gold">
+                    <i data-lucide="gamepad-2" class="w-4 h-4"></i> Zon JeBaT 🎮
+                </button>
+                <button onclick="showSection('kuiz')" id="nav-kuiz" class="nav-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-white/10">
+                    <i data-lucide="award" class="w-4 h-4 text-purple-400"></i> Uji Minda
+                </button>
+                <button onclick="showSection('pelawat')" id="nav-pelawat" class="nav-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 hover:bg-emerald-900/50">
+                    <i data-lucide="message-square" class="w-4 h-4 text-emerald-400"></i> Zon Pelawat 📜
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- KANDUNGAN UTAMA -->
+    <main class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full relative z-10">
+
+        <!-- UCAPAN / UTAMA -->
+        <section id="sec-utama" class="tab-content text-center py-8">
+            <div class="glass-card rounded-3xl p-8 sm:p-12 max-w-4xl mx-auto relative overflow-hidden border border-emerald-500/30 glow-emerald">
+                <div class="absolute -top-10 -right-10 w-40 h-40 bg-amber-500/10 rounded-full blur-2xl"></div>
+
+                <div class="inline-flex p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-3xl text-5xl mb-6 shadow-inner text-emerald-400 animate-pulse">
+                    🔮
+                </div>
+                
+                <h2 class="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-amber-200 to-cyan-300 mb-4 font-cinzel">
+                    Selamat Datang ke Alam JEBAT!
+                </h2>
+                
+                <p class="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed font-normal">
+                    Kembara menerokai khazanah indah Bahasa Melayu berasaskan DSKP KSSR & Kamus Dewan. Pelajari <span class="text-amber-300 font-semibold">Penjodoh Bilangan</span> secara interaktif dalam suasana fantasi yang memukau.
+                </p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <button onclick="showSection('nota')" class="p-5 glass-card rounded-2xl hover:border-emerald-500/50 transition-all text-left hover:-translate-y-1">
+                        <div class="text-3xl mb-2">📚</div>
+                        <h3 class="font-bold text-emerald-300 text-sm">1. Nota Magis</h3>
+                        <p class="text-[11px] text-slate-400 mt-1">Himpunan ilmu penjodoh bilangan.</p>
+                    </button>
+                    <button onclick="showSection('jelajah')" class="p-5 glass-card rounded-2xl hover:border-cyan-500/50 transition-all text-left hover:-translate-y-1">
+                        <div class="text-3xl mb-2">🔍</div>
+                        <h3 class="font-bold text-cyan-300 text-sm">2. Jelajah Bahasa</h3>
+                        <p class="text-[11px] text-slate-400 mt-1">Interaksi emoji & ayat contoh DSKP.</p>
+                    </button>
+                    <button onclick="showSection('game')" class="p-5 bg-gradient-to-b from-amber-500/20 to-amber-900/30 border border-amber-500/40 rounded-2xl transition-all text-left hover:-translate-y-1">
+                        <div class="text-3xl mb-2">🍄</div>
+                        <h3 class="font-bold text-amber-300 text-sm">3. Zon JeBaT</h3>
+                        <p class="text-[11px] text-amber-200/70 mt-1">Kembara Mario Fantasi & Cabaran Blok.</p>
+                    </button>
+                    <button onclick="showSection('kuiz')" class="p-5 glass-card rounded-2xl hover:border-purple-500/50 transition-all text-left hover:-translate-y-1">
+                        <div class="text-3xl mb-2">🏆</div>
+                        <h3 class="font-bold text-purple-300 text-sm">4. Uji Minda</h3>
+                        <p class="text-[11px] text-slate-400 mt-1">Kuiz 3 Aras & Sijil Kehormatan.</p>
+                    </button>
+                    <button onclick="showSection('pelawat')" class="p-5 glass-card rounded-2xl border-emerald-500/40 bg-emerald-950/20 hover:border-emerald-400 transition-all text-left hover:-translate-y-1">
+                        <div class="text-3xl mb-2">📜</div>
+                        <h3 class="font-bold text-emerald-400 text-sm">5. Zon Pelawat</h3>
+                        <p class="text-[11px] text-slate-400 mt-1">Tinggalkan nama & komen di Sheet Awan.</p>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- BAHAGIAN 1: NOTA MAGIS -->
+        <section id="sec-nota" class="tab-content hidden">
+            <div class="glass-card rounded-3xl p-6 sm:p-8 border border-white/10">
+                <div class="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
+                    <div class="p-3 bg-emerald-500/20 border border-emerald-500/30 rounded-2xl text-emerald-400">
+                        <i data-lucide="sparkles" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white font-cinzel">Nota Magis Penjodoh Bilangan</h2>
+                        <p class="text-xs text-slate-400">Rujukan Rasmi DSKP KSSR BM Tahun 1–6 & Kamus Dewan Pelajar</p>
+                    </div>
+                </div>
+
+                <div class="bg-amber-500/10 border-l-4 border-amber-400 p-4 rounded-r-2xl mb-8">
+                    <h3 class="font-bold text-amber-300 text-base flex items-center gap-2">
+                        <span>💡</span> Pengenalan Penjodoh Bilangan
+                    </h3>
+                    <p class="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed">
+                        Penjodoh bilangan ialah kata yang digunakan bersama-sama dengan kata bilangan untuk membilang kata nama (orang, haiwan, benda, tempat, dan tumbuh-tumbuhan).
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="nota-container">
+                    <!-- Cards dijana JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- BAHAGIAN 2: JELAJAH BAHASA -->
+        <section id="sec-jelajah" class="tab-content hidden">
+            <div class="glass-card rounded-3xl p-6 sm:p-8 border border-white/10">
+                <div class="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
+                    <div class="p-3 bg-cyan-500/20 border border-cyan-500/30 rounded-2xl text-cyan-400">
+                        <i data-lucide="compass" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white font-cinzel">Ruangan Jelajah Bahasa</h2>
+                        <p class="text-xs text-slate-400">Pilih kata penjodoh bilangan untuk menerokai maksud, emoji & contoh ayat DSKP!</p>
+                    </div>
+                </div>
+
+                <div class="mb-6 max-w-md relative">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="jelajah-search" onkeyup="filterJelajah()" placeholder="Cari penjodoh bilangan..." class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/80 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 text-sm">
+                </div>
+
+                <div class="flex flex-wrap gap-2 mb-8" id="jelajah-buttons">
+                    <!-- Dynamic Buttons -->
+                </div>
+
+                <div id="jelajah-display" class="glass-card rounded-3xl p-6 sm:p-8 border border-cyan-500/30 glow-cyan">
+                    <!-- Display aktif -->
+                </div>
+            </div>
+        </section>
+
+        <!-- BAHAGIAN 3: ZON JEBAT (GAME MARIO FANTASI) -->
+        <section id="sec-game" class="tab-content hidden">
+            <div class="glass-card rounded-3xl p-4 sm:p-6 border border-amber-500/40 glow-gold">
+                <div class="flex flex-wrap justify-between items-center mb-4 pb-3 border-b border-white/10 gap-2">
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl">🍄</span>
+                        <div>
+                            <h2 class="text-xl sm:text-2xl font-black text-amber-300 font-cinzel">Zon JeBaT: Kembara Fantasi</h2>
+                            <p class="text-xs text-slate-400">Bergerak guna kekunci ⬅️ ➡️ & Lompat ⬆️ untuk buka blok [?] magis</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 bg-slate-900/80 px-4 py-2 rounded-2xl border border-white/10 font-mono text-sm">
+                        <div>Mata: <span id="game-score" class="text-amber-400 font-bold">0</span></div>
+                        <div>Nyawa: <span id="game-lives" class="text-red-400 font-bold">❤️ 3</span></div>
+                    </div>
+                </div>
+
+                <div class="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-slate-950 flex justify-center items-center">
+                    <canvas id="marioCanvas" width="800" height="400" class="w-full max-w-3xl h-auto block"></canvas>
+                </div>
+
+                <!-- Kawalan Sentuh Mobil -->
+                <div class="mt-4 flex justify-between items-center max-w-md mx-auto sm:hidden">
+                    <div class="flex gap-2">
+                        <button id="btn-left" class="w-14 h-14 bg-slate-800 rounded-2xl text-2xl flex items-center justify-center border border-white/10 active:bg-slate-700">⬅️</button>
+                        <button id="btn-right" class="w-14 h-14 bg-slate-800 rounded-2xl text-2xl flex items-center justify-center border border-white/10 active:bg-slate-700">➡️</button>
+                    </div>
+                    <button id="btn-jump" class="w-20 h-14 bg-amber-500 text-slate-950 font-black rounded-2xl text-sm flex items-center justify-center border border-amber-300 active:bg-amber-600">LOMPAT</button>
+                </div>
+
+                <!-- Modal Soalan Permainan -->
+                <div id="game-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+                    <div class="glass-card text-white rounded-3xl p-6 max-w-lg w-full border border-amber-400/50 glow-gold">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="bg-amber-500/20 text-amber-300 text-xs font-bold px-3 py-1 rounded-full border border-amber-500/30">
+                                ❓ Cabaran Blok Magis
+                            </span>
+                            <span class="text-xs text-slate-400 font-medium">Bahasa Melayu KSSR</span>
+                        </div>
+                        <h3 id="game-question-text" class="text-base sm:text-lg font-bold text-white mb-6 leading-relaxed">
+                            Soalan...
+                        </h3>
+                        <div id="game-options" class="space-y-2.5 mb-4">
+                            <!-- Pilihan -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- BAHAGIAN 4: UJI MINDA & SIJIL -->
+        <section id="sec-kuiz" class="tab-content hidden">
+            <div class="glass-card rounded-3xl p-6 sm:p-8 border border-white/10 max-w-4xl mx-auto">
+                <div class="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
+                    <div class="p-3 bg-purple-500/20 border border-purple-500/30 rounded-2xl text-purple-400">
+                        <i data-lucide="award" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white font-cinzel">Uji Minda & Sijil Kehormatan</h2>
+                        <p class="text-xs text-slate-400">Uji pengetahuan mengikut aras dan terima Sijil Pengiktirafan JEBAT!</p>
+                    </div>
+                </div>
+
+                <!-- Step 1: Maklumat -->
+                <div id="kuiz-setup-card" class="bg-slate-900/60 p-6 rounded-2xl border border-white/10">
+                    <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+                        <i data-lucide="user" class="w-4 h-4 text-purple-400"></i> Maklumat Murid
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">Nama Penuh Murid</label>
+                            <input type="text" id="student-name" placeholder="Contoh: Tuah Bin Jebat" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white focus:border-purple-500 focus:outline-none text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">Kelas / Sekolah</label>
+                            <input type="text" id="student-class" placeholder="Contoh: 5 Bijak" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white focus:border-purple-500 focus:outline-none text-sm">
+                        </div>
+                    </div>
+
+                    <h3 class="text-base font-bold text-white mb-3 flex items-center gap-2">
+                        <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i> Pilih Aras Cabaran
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="kuiz-level" value="mudah" class="peer hidden" checked>
+                            <div class="p-4 rounded-xl border border-white/10 peer-checked:border-emerald-500 peer-checked:bg-emerald-950/30 hover:bg-slate-800 transition text-center">
+                                <div class="text-2xl mb-1">🟢</div>
+                                <div class="font-bold text-white text-sm">Aras Permulaan</div>
+                                <div class="text-[11px] text-slate-400 mt-0.5">Tahun 1 & 2</div>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="kuiz-level" value="sederhana" class="peer hidden">
+                            <div class="p-4 rounded-xl border border-white/10 peer-checked:border-amber-500 peer-checked:bg-amber-950/30 hover:bg-slate-800 transition text-center">
+                                <div class="text-2xl mb-1">🟡</div>
+                                <div class="font-bold text-white text-sm">Aras Sederhana</div>
+                                <div class="text-[11px] text-slate-400 mt-0.5">Tahun 3 & 4</div>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="kuiz-level" value="sukar" class="peer hidden">
+                            <div class="p-4 rounded-xl border border-white/10 peer-checked:border-purple-500 peer-checked:bg-purple-950/30 hover:bg-slate-800 transition text-center">
+                                <div class="text-2xl mb-1">🔴</div>
+                                <div class="font-bold text-white text-sm">Aras Pakar</div>
+                                <div class="text-[11px] text-slate-400 mt-0.5">Tahun 5 & 6</div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <button onclick="startQuiz()" class="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-sm">
+                        Mula Cabaran Minda <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <!-- Step 2: Soalan -->
+                <div id="kuiz-play-card" class="hidden bg-slate-900/60 p-6 rounded-2xl border border-white/10">
+                    <div class="flex justify-between items-center mb-4">
+                        <span id="quiz-progress-text" class="text-xs font-bold text-purple-300 bg-purple-950/80 border border-purple-500/30 px-3 py-1 rounded-full">Soalan 1 / 5</span>
+                        <span id="quiz-level-badge" class="text-xs font-bold text-slate-400 uppercase">Aras Mudah</span>
+                    </div>
+
+                    <h3 id="quiz-question" class="text-lg font-bold text-white mb-6">
+                        Soalan...
+                    </h3>
+
+                    <div id="quiz-options" class="space-y-3 mb-6">
+                        <!-- Options -->
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button id="quiz-next-btn" onclick="nextQuizQuestion()" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl shadow transition text-sm hidden">
+                            Seterusnya ➡️
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Keputusan & Sijil Magis -->
+                <div id="kuiz-result-card" class="hidden text-center">
+                    <div class="mb-6">
+                        <div class="inline-block p-4 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-4xl mb-3">
+                            🏆
+                        </div>
+                        <h3 class="text-2xl font-bold text-white font-cinzel">Tahniah! Anda Berjaya Menyelesaikan Kuiz</h3>
+                        <p class="text-sm text-slate-400 mt-1">Keputusan: <span id="quiz-score-display" class="font-bold text-xl text-emerald-400">0/5</span></p>
+                    </div>
+
+                    <!-- TEMPLATE SIJIL FANTASI -->
+                    <div class="overflow-x-auto p-2 mb-6 flex justify-center">
+                        <div id="certificate-template" class="w-[720px] h-[500px] bg-slate-950 border-[10px] border-amber-500/80 rounded-lg p-6 relative flex flex-col justify-between text-white shadow-2xl mx-auto" style="background-image: radial-gradient(rgba(245, 158, 11, 0.15) 1px, transparent 0); background-size: 20px 20px;">
+                            
+                            <div class="border-2 border-amber-400/50 h-full w-full p-6 flex flex-col justify-between items-center text-center relative bg-slate-900/90">
+                                
+                                <div class="w-full flex justify-between items-center border-b border-amber-500/40 pb-3">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-2xl">🏹</span>
+                                        <div class="text-left">
+                                            <div class="font-black text-amber-300 text-base font-cinzel">JEBAT</div>
+                                            <div class="text-[9px] text-slate-400">Jejak Bahasa Tercinta</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-[10px] font-bold text-amber-400 tracking-widest">SIJIL ANUGERAH BAHASA</div>
+                                        <div class="text-[8px] text-slate-400" id="cert-date">Tarikh: 2026-08-22</div>
+                                    </div>
+                                </div>
+
+                                <div class="my-auto py-2">
+                                    <h4 class="text-[10px] font-bold tracking-widest text-amber-400 uppercase mb-1">Dengan Ini Pengiktirafan Diberikan Kepada</h4>
+                                    
+                                    <h2 id="cert-name" class="text-2xl font-black text-emerald-300 my-2 font-cinzel uppercase tracking-wider border-b-2 border-emerald-400 inline-block px-4 pb-1">
+                                        NAMA MURID
+                                    </h2>
+                                    
+                                    <p id="cert-class" class="text-xs font-semibold text-slate-300">Kelas: 4 Cemerlang</p>
+                                    
+                                    <p class="text-xs text-slate-300 mt-3 max-w-md mx-auto leading-relaxed">
+                                        Kerana telah berjaya menamatkan Cabaran Penjodoh Bilangan Bahasa Melayu dalam Aplikasi JEBAT dengan pencapaian cemerlang <span id="cert-score" class="font-bold text-amber-300">100%</span> pada <span id="cert-level" class="font-bold text-cyan-300">Aras Permulaan</span>.
+                                    </p>
+                                </div>
+
+                                <div class="w-full flex justify-between items-end pt-3 border-t border-amber-500/30">
+                                    <div class="text-center">
+                                        <div class="text-lg">🎖️</div>
+                                        <div class="text-[8px] font-bold text-amber-400 uppercase">Pengesahan Awan JEBAT</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="font-cinzel font-bold text-emerald-400 text-xs italic">Cikgu Bahasa Melayu</div>
+                                        <div class="border-t border-slate-500 w-24 mx-auto my-0.5"></div>
+                                        <div class="text-[8px] text-slate-400">DSKP BM KSSR 2017</div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap justify-center gap-3">
+                        <button onclick="downloadCertificate()" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg transition flex items-center gap-2 text-sm">
+                            <i data-lucide="download" class="w-4 h-4"></i> Muat Turun Sijil (PNG)
+                        </button>
+                        <button onclick="resetQuiz()" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition flex items-center gap-2 text-sm">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Cuba Lagi
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- BAHAGIAN 5: ZON PELAWAT (FIRESTORE SHEET Persistent) -->
+        <section id="sec-pelawat" class="tab-content hidden">
+            <div class="glass-card rounded-3xl p-6 sm:p-8 border border-emerald-500/30 glow-emerald">
+                <div class="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
+                    <div class="p-3 bg-emerald-500/20 border border-emerald-500/30 rounded-2xl text-emerald-400">
+                        <i data-lucide="message-square" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-white font-cinzel">Zon Pelawat & Komen Awan</h2>
+                        <p class="text-xs text-slate-400">Tinggalkan jejak, maklum balas atau sokongan anda ke dalam lembaran data pelawat web ini!</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Borang Pelawat -->
+                    <div class="bg-slate-900/80 p-6 rounded-2xl border border-white/10 h-fit">
+                        <h3 class="text-base font-bold text-emerald-400 mb-4 flex items-center gap-2">
+                            <i data-lucide="pen-tool" class="w-4 h-4"></i> Tulis Ucapan Pelawat
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1">Nama Pelawat / Murid *</label>
+                                <input type="text" id="pelawat-nama" placeholder="Contoh: Cikgu Sarah / Amirul" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white focus:border-emerald-500 focus:outline-none text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1">Sekolah / Kelas</label>
+                                <input type="text" id="pelawat-sekolah" placeholder="Contoh: SK Seri Melati" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white focus:border-emerald-500 focus:outline-none text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1">Komen / Ucapan *</label>
+                                <textarea id="pelawat-mesej" rows="3" placeholder="Tuliskan ucapan atau maklum balas anda..." class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-white/10 text-white focus:border-emerald-500 focus:outline-none text-sm resize-none"></textarea>
+                            </div>
+                            <button id="btn-hantar-pelawat" onclick="window.hantarKomen()" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-sm">
+                                Hantar Ucapan Magic ✨
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Senarai Komen Pelawat (Sheet / Database) -->
+                    <div class="lg:col-span-2">
+                        <h3 class="text-base font-bold text-white mb-4 flex items-center justify-between">
+                            <span class="flex items-center gap-2"><i data-lucide="list" class="w-4 h-4 text-emerald-400"></i> Lembaran Komen Pelawat</span>
+                            <span class="text-xs text-emerald-400 bg-emerald-950 px-2.5 py-1 rounded-full border border-emerald-500/30">Disimpan ke Sheet Awan</span>
+                        </h3>
+
+                        <div id="guestbook-list" class="space-y-3 max-h-[450px] overflow-y-auto pr-2">
+                            <!-- Komen akan dipaparkan dari Firestore -->
+                            <div class="text-center py-8 text-slate-500 text-xs">Memuatkan lembaran pelawat...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="glass-nav text-slate-500 text-xs py-4 text-center border-t border-white/5 relative z-10 mt-12">
+        <p>© 2026 JEBAT (Jejak Bahasa Tercinta) — DSKP KSSR Bahasa Melayu & Kamus Dewan</p>
+    </footer>
+
+    <!-- MODAL ALERT KOSTUM -->
+    <div id="modal-alert" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass-card text-white rounded-2xl p-6 max-w-sm w-full text-center border border-white/20">
+            <div class="text-3xl mb-2">✨</div>
+            <p id="modal-alert-text" class="text-sm font-semibold mb-5 text-slate-200">Mesej...</p>
+            <button onclick="closeModalAlert()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition">
+                Faham
+            </button>
+        </div>
+    </div>
+
+    <!-- LOGIK JAVASCRIPT APLIKASI -->
+    <script>
+        // --- DATA PENJODOH BILANGAN ---
+        const dataPenjodoh = [
+            { nama: "Batang", emoji: "✏️", maksud: "Benda yang panjang, lurus, atau keras.", contoh: "pensel, pokok, sungai, lilin, gigi", ayat: "Ahmad membeli sebatang pensel baharu di kedai buku.", aras: "Tahun 1-6" },
+            { nama: "Biji", emoji: "🍎", maksud: "Benda-benda yang bulat atau kecil.", contoh: "epal, bola, telur, guli, cawan", ayat: "Ibu meletakkan sebiji telur di dalam mangkuk.", aras: "Tahun 1-6" },
+            { nama: "Ekor", emoji: "🐱", maksud: "Digunakan khusus untuk haiwan.", contoh: "kucing, burung, ikan, lembu", ayat: "Dua ekor burung berkicau di dahan pokok.", aras: "Tahun 1-6" },
+            { nama: "Keping", emoji: "🍞", maksud: "Benda yang rata, nipis, dan lebar.", contoh: "roti, biskut, kertas, papan", ayat: "Siti makan sekeping roti bakar.", aras: "Tahun 1-6" },
+            { nama: "Orang", emoji: "👨‍🏫", maksud: "Digunakan khusus untuk manusia.", contoh: "guru, polis, doktor, murid", ayat: "Seorang doktor sedang merawat pesakit.", aras: "Tahun 1-6" },
+            { nama: "Pucuk", emoji: "✉️", maksud: "Benda halus, tajam, surat atau senjata.", contoh: "surat, jarum, pistol, meriam", ayat: "Posmen menyerahkan sepucuk surat rasmi.", aras: "Tahun 3-6" },
+            { nama: "Bentuk", emoji: "💍", maksud: "Benda kecil yang melengkung atau bulat.", contoh: "cincin, mata kail, subang", ayat: "Kakak memakai sebentuk cincin emas.", aras: "Tahun 3-6" },
+            { nama: "Laras", emoji: "🔫", maksud: "Senjata api dengan tiub panjang.", contoh: "senapang, meriam", ayat: "Polis memegang selaras senapang.", aras: "Tahun 4-6" },
+            { nama: "Naskhah", emoji: "📰", maksud: "Bahan bacaan bertulis atau bercetak.", contoh: "surat khabar, majalah, buku", ayat: "Ayah membaca senaskhah surat khabar.", aras: "Tahun 3-6" },
+            { nama: "Urat", emoji: "🧵", maksud: "Benda yang halus dan panjang.", contoh: "benang, dawai, rambut", ayat: "Nenek memasukkan seurat benang ke jarum.", aras: "Tahun 4-6" },
+            { nama: "Bilah", emoji: "🔪", maksud: "Benda tajam atau runcing.", contoh: "pisau, gunting, keris, pedang", ayat: "Abang memotong buah guna sebilah pisau.", aras: "Tahun 1-6" },
+            { nama: "Utas", emoji: "📿", maksud: "Benda yang panjang dan berangkai.", contoh: "rantai, tali", ayat: "Ibu memakai seutus rantai mutiara.", aras: "Tahun 4-6" }
+        ];
+
+        const quizData = {
+            mudah: [
+                { q: "Ali membeli dua ___ pensel di koperasi.", options: ["batang", "biji", "ekor", "keping"], ans: 0 },
+                { q: "Adik makan se___ epal yang manis.", options: ["ekor", "biji", "batang", "pucuk"], ans: 1 },
+                { q: "Tiga ___ kucing sedang tidur.", options: ["orang", "biji", "ekor", "bentuk"], ans: 2 },
+                { q: "Se___ guru sedang mengajar.", options: ["orang", "ekor", "bilah", "laras"], ans: 0 },
+                { q: "Ibu meletakkan se___ roti bakar.", options: ["batang", "keping", "biji", "pucuk"], ans: 1 }
+            ],
+            sederhana: [
+                { q: "Posmen menyampaikan se___ surat.", options: ["batang", "pucuk", "keping", "naskhah"], ans: 1 },
+                { q: "Ayah membaca se___ majalah.", options: ["pucuk", "naskhah", "lembar", "keping"], ans: 1 },
+                { q: "Abang mengasah se___ pisau.", options: ["bilah", "batang", "bentuk", "laras"], ans: 0 },
+                { q: "Kakak memakai se___ cincin perak.", options: ["biji", "bentuk", "pucuk", "keping"], ans: 1 },
+                { q: "Nelayan membawa se___ mata kail.", options: ["bilah", "bentuk", "batang", "pucuk"], ans: 1 }
+            ],
+            sukar: [
+                { q: "Polis menjumpai dua ___ senapang patah.", options: ["batang", "laras", "pucuk", "bilah"], ans: 1 },
+                { q: "Nenek memasukkan se___ benang emas.", options: ["utas", "urat", "pucuk", "keping"], ans: 1 },
+                { q: "Pahlawan menghunus se___ keris pusaka.", options: ["bilah", "laras", "pucuk", "batang"], ans: 0 },
+                { q: "Ibu memakai se___ rantai leher.", options: ["utas", "urat", "gelung", "pucuk"], ans: 0 },
+                { q: "Penyair mencipta se___ puisi indah.", options: ["pucuk", "keping", "seuntai", "naskhah"], ans: 2 }
+            ]
+        };
+
+        // --- NAVIGATION & TABS ---
+        function showSection(sectionId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`sec-${sectionId}`).classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            if(sectionId === 'game') initGame();
+        }
+
+        function showModalAlert(text) {
+            document.getElementById('modal-alert-text').innerText = text;
+            document.getElementById('modal-alert').classList.remove('hidden');
+        }
+
+        function closeModalAlert() {
+            document.getElementById('modal-alert').classList.add('hidden');
+        }
+
+        // --- NOTA MAGIS ---
+        function loadNota() {
+            const container = document.getElementById('nota-container');
+            container.innerHTML = '';
+            dataPenjodoh.forEach(item => {
+                const card = `
+                    <div class="glass-card rounded-2xl p-5 border border-white/10 hover:border-emerald-500/40 transition flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-3xl">${item.emoji}</span>
+                                <span class="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">${item.aras}</span>
+                            </div>
+                            <h3 class="text-base font-bold text-white mb-1">${item.nama}</h3>
+                            <p class="text-xs text-slate-400 mb-3">${item.maksud}</p>
+                        </div>
+                        <div class="bg-slate-900/60 p-3 rounded-xl border border-white/5">
+                            <p class="text-[11px] text-slate-500 font-semibold mb-0.5">Contoh Benda:</p>
+                            <p class="text-xs font-semibold text-emerald-400">${item.contoh}</p>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+        }
+
+        // --- JELAJAH BAHASA ---
+        let selectedPenjodoh = dataPenjodoh[0];
+
+        function loadJelajahButtons() {
+            const container = document.getElementById('jelajah-buttons');
+            container.innerHTML = '';
+            dataPenjodoh.forEach(item => {
+                const isSelected = item.nama === selectedPenjodoh.nama;
+                const btn = document.createElement('button');
+                btn.className = `px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${isSelected ? 'bg-cyan-500 text-slate-950 shadow-lg glow-cyan' : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-white/5'}`;
+                btn.innerHTML = `<span>${item.emoji}</span> ${item.nama}`;
+                btn.onclick = () => {
+                    selectedPenjodoh = item;
+                    loadJelajahButtons();
+                    renderJelajahDisplay();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function renderJelajahDisplay() {
+            const display = document.getElementById('jelajah-display');
+            display.innerHTML = `
+                <div class="flex flex-col md:flex-row gap-6 items-center">
+                    <div class="bg-slate-900/80 p-6 rounded-2xl border border-cyan-500/30 text-center min-w-[180px]">
+                        <div class="text-5xl mb-2 animate-bounce">${selectedPenjodoh.emoji}</div>
+                        <h3 class="text-2xl font-black text-cyan-300 font-cinzel">${selectedPenjodoh.nama}</h3>
+                        <span class="text-[10px] text-slate-400 block mt-1">${selectedPenjodoh.aras}</span>
+                    </div>
+                    <div class="flex-grow space-y-3 w-full">
+                        <div class="bg-slate-900/60 p-3.5 rounded-xl border border-white/5">
+                            <h4 class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider mb-0.5">Fungsi & Maksud</h4>
+                            <p class="text-xs sm:text-sm text-slate-200">${selectedPenjodoh.maksud}</p>
+                        </div>
+                        <div class="bg-slate-900/60 p-3.5 rounded-xl border border-white/5">
+                            <h4 class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider mb-0.5">Contoh Objek</h4>
+                            <p class="text-xs sm:text-sm font-semibold text-emerald-400">${selectedPenjodoh.contoh}</p>
+                        </div>
+                        <div class="bg-amber-500/10 p-3.5 rounded-xl border border-amber-500/20">
+                            <h4 class="text-[10px] font-bold text-amber-300 uppercase tracking-wider mb-0.5">Contoh Ayat DSKP</h4>
+                            <p class="text-xs sm:text-sm font-bold text-amber-200 italic">"${selectedPenjodoh.ayat}"</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function filterJelajah() {
+            const query = document.getElementById('jelajah-search').value.toLowerCase();
+            const filtered = dataPenjodoh.filter(i => i.nama.toLowerCase().includes(query) || i.contoh.toLowerCase().includes(query));
+            if(filtered.length > 0) {
+                selectedPenjodoh = filtered[0];
+                renderJelajahDisplay();
+            }
+        }
+
+        // --- GAME MARIO (ZON JEBAT FANTASI) ---
+        let canvas, ctx;
+        let mario = { x: 50, y: 300, width: 30, height: 40, vx: 0, vy: 0, grounded: false, speed: 4, jumpPower: -11 };
+        let gravity = 0.5;
+        let score = 0;
+        let lives = 3;
+        let blocks = [];
+        let keys = {};
+        let gameLoopId;
+
+        function initGame() {
+            canvas = document.getElementById('marioCanvas');
+            ctx = canvas.getContext('2d');
+
+            mario.x = 50;
+            mario.y = 300;
+            mario.vx = 0;
+            mario.vy = 0;
+            score = 0;
+            lives = 3;
+            document.getElementById('game-score').innerText = score;
+            document.getElementById('game-lives').innerText = '❤️ ' + lives;
+
+            blocks = [
+                { x: 180, y: 240, width: 36, height: 36, hit: false, questionIndex: 0 },
+                { x: 340, y: 200, width: 36, height: 36, hit: false, questionIndex: 1 },
+                { x: 500, y: 240, width: 36, height: 36, hit: false, questionIndex: 2 },
+                { x: 650, y: 180, width: 36, height: 36, hit: false, questionIndex: 3 }
+            ];
+
+            window.onkeydown = (e) => keys[e.code] = true;
+            window.onkeyup = (e) => keys[e.code] = false;
+
+            setupMobileControls();
+
+            if(gameLoopId) cancelAnimationFrame(gameLoopId);
+            gameUpdate();
+        }
+
+        function setupMobileControls() {
+            const btnLeft = document.getElementById('btn-left');
+            const btnRight = document.getElementById('btn-right');
+            const btnJump = document.getElementById('btn-jump');
+
+            btnLeft.ontouchstart = (e) => { e.preventDefault(); keys['ArrowLeft'] = true; };
+            btnLeft.ontouchend = () => keys['ArrowLeft'] = false;
+
+            btnRight.ontouchstart = (e) => { e.preventDefault(); keys['ArrowRight'] = true; };
+            btnRight.ontouchend = () => keys['ArrowRight'] = false;
+
+            btnJump.ontouchstart = (e) => { e.preventDefault(); keys['ArrowUp'] = true; };
+            btnJump.ontouchend = () => keys['ArrowUp'] = false;
+        }
+
+        function gameUpdate() {
+            if (keys['ArrowRight'] || keys['KeyD']) mario.vx = mario.speed;
+            else if (keys['ArrowLeft'] || keys['KeyA']) mario.vx = -mario.speed;
+            else mario.vx = 0;
+
+            if ((keys['ArrowUp'] || keys['KeyW'] || keys['Space']) && mario.grounded) {
+                mario.vy = mario.jumpPower;
+                mario.grounded = false;
+            }
+
+            mario.vy += gravity;
+            mario.x += mario.vx;
+            mario.y += mario.vy;
+
+            if (mario.y + mario.height >= 340) {
+                mario.y = 340 - mario.height;
+                mario.vy = 0;
+                mario.grounded = true;
+            }
+
+            if (mario.x < 0) mario.x = 0;
+            if (mario.x + mario.width > canvas.width) mario.x = canvas.width - mario.width;
+
+            blocks.forEach(b => {
+                if (!b.hit &&
+                    mario.x + mario.width > b.x &&
+                    mario.x < b.x + b.width &&
+                    mario.y <= b.y + b.height &&
+                    mario.y >= b.y + b.height - 10 &&
+                    mario.vy < 0) {
+                        b.hit = true;
+                        mario.vy = 2;
+                        triggerGameQuestion(b);
+                }
+            });
+
+            renderGame();
+            gameLoopId = requestAnimationFrame(gameUpdate);
+        }
+
+        function renderGame() {
+            // Latar Belakang Langit Magis
+            ctx.fillStyle = '#0b1329';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Bintang-Bintang
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(100, 50, 2, 2);
+            ctx.fillRect(300, 80, 3, 3);
+            ctx.fillRect(600, 40, 2, 2);
+
+            // Tanah Kristal
+            ctx.fillStyle = '#10b981';
+            ctx.fillRect(0, 340, canvas.width, 10);
+            ctx.fillStyle = '#064e3b';
+            ctx.fillRect(0, 350, canvas.width, 50);
+
+            // Blok Soalan Magis
+            blocks.forEach(b => {
+                if(b.hit) {
+                    ctx.fillStyle = '#334155';
+                    ctx.fillRect(b.x, b.y, b.width, b.height);
+                } else {
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.fillRect(b.x, b.y, b.width, b.height);
+                    ctx.fillStyle = '#000000';
+                    ctx.font = 'bold 18px sans-serif';
+                    ctx.fillText('?', b.x + 13, b.y + 24);
+                }
+            });
+
+            // Character Mario Magis
+            ctx.fillStyle = '#10b981';
+            ctx.fillRect(mario.x, mario.y, mario.width, mario.height);
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(mario.x - 2, mario.y, mario.width + 4, 8);
+        }
+
+        const gameQuestions = [
+            { q: "Pilih penjodoh bilangan bagi 'Sebabak Meriam'.", opts: ["Batang", "Laras", "Pucuk"], ans: 1 },
+            { q: "Kakak membeli tiga ___ cincin emas.", opts: ["Bentuk", "Biji", "Utas"], ans: 0 },
+            { q: "Posmen menghantar dua ___ surat rasmi.", opts: ["Keping", "Pucuk", "Batang"], ans: 1 },
+            { q: "Adik menjumpai se___ benang di lantai.", opts: ["Utas", "Urat", "Bilah"], ans: 1 }
+        ];
+
+        function triggerGameQuestion(block) {
+            const qData = gameQuestions[block.questionIndex] || gameQuestions[0];
+            const modal = document.getElementById('game-modal');
+            const qText = document.getElementById('game-question-text');
+            const optsContainer = document.getElementById('game-options');
+
+            qText.innerText = qData.q;
+            optsContainer.innerHTML = '';
+
+            qData.opts.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-3 rounded-xl border border-white/10 hover:border-amber-400 hover:bg-amber-500/10 font-semibold text-slate-200 transition text-sm flex justify-between items-center";
+                btn.innerHTML = `<span>${opt}</span> <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>`;
+                btn.onclick = () => {
+                    if(idx === qData.ans) {
+                        score += 25;
+                        document.getElementById('game-score').innerText = score;
+                        showModalAlert("🎉 TAHNIAH! Jawapan Betul (+25 Mata)");
+                    } else {
+                        lives -= 1;
+                        document.getElementById('game-lives').innerText = '❤️ ' + lives;
+                        showModalAlert("❌ ALAMAK! Jawapan Kurang Tepat (-1 Nyawa)");
+                    }
+                    modal.classList.add('hidden');
+                    lucide.createIcons();
+                };
+                optsContainer.appendChild(btn);
+            });
+
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        // --- UJI MINDA ---
+        let currentQuizLevel = 'mudah';
+        let currentQuizQuestions = [];
+        let currentQIndex = 0;
+        let userAnswers = [];
+
+        function startQuiz() {
+            const name = document.getElementById('student-name').value.trim();
+            const sClass = document.getElementById('student-class').value.trim();
+
+            if(!name || !sClass) {
+                showModalAlert("Sila masukkan Nama Murid dan Kelas terlebih dahulu!");
+                return;
+            }
+
+            const levelRadios = document.getElementsByName('kuiz-level');
+            for(let r of levelRadios) {
+                if(r.checked) currentQuizLevel = r.value;
+            }
+
+            currentQuizQuestions = quizData[currentQuizLevel];
+            currentQIndex = 0;
+            userAnswers = [];
+
+            document.getElementById('kuiz-setup-card').classList.add('hidden');
+            document.getElementById('kuiz-play-card').classList.remove('hidden');
+            document.getElementById('kuiz-result-card').classList.add('hidden');
+
+            renderQuizQuestion();
+        }
+
+        function renderQuizQuestion() {
+            const q = currentQuizQuestions[currentQIndex];
+            document.getElementById('quiz-progress-text').innerText = `Soalan ${currentQIndex + 1} / ${currentQuizQuestions.length}`;
+            document.getElementById('quiz-level-badge').innerText = `Aras ${currentQuizLevel}`;
+            document.getElementById('quiz-question').innerText = `${currentQIndex + 1}. ${q.q}`;
+
+            const optsContainer = document.getElementById('quiz-options');
+            optsContainer.innerHTML = '';
+            document.getElementById('quiz-next-btn').classList.add('hidden');
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-3.5 rounded-xl border border-white/10 hover:bg-slate-800/80 font-medium text-slate-200 transition flex items-center gap-3 text-sm";
+                btn.innerHTML = `<span class="w-6 h-6 rounded-full bg-slate-800 border border-white/10 text-slate-300 flex items-center justify-center font-bold text-xs">${String.fromCharCode(65 + idx)}</span> ${opt}`;
+                btn.onclick = () => selectQuizOption(idx, btn);
+                optsContainer.appendChild(btn);
+            });
+        }
+
+        let selectedOptionForCurrentQ = null;
+
+        function selectQuizOption(optIdx, btnElement) {
+            selectedOptionForCurrentQ = optIdx;
+            const allBtns = document.getElementById('quiz-options').children;
+            for(let b of allBtns) {
+                b.classList.remove('border-purple-500', 'bg-purple-950/40');
+                b.classList.add('border-white/10');
+            }
+            btnElement.classList.add('border-purple-500', 'bg-purple-950/40');
+            document.getElementById('quiz-next-btn').classList.remove('hidden');
+        }
+
+        function nextQuizQuestion() {
+            userAnswers.push(selectedOptionForCurrentQ);
+            currentQIndex++;
+
+            if(currentQIndex < currentQuizQuestions.length) {
+                renderQuizQuestion();
+            } else {
+                finishQuiz();
+            }
+        }
+
+        function finishQuiz() {
+            let correctCount = 0;
+            currentQuizQuestions.forEach((q, i) => {
+                if(userAnswers[i] === q.ans) correctCount++;
+            });
+
+            const scorePercent = Math.round((correctCount / currentQuizQuestions.length) * 100);
+
+            document.getElementById('kuiz-play-card').classList.add('hidden');
+            document.getElementById('kuiz-result-card').classList.remove('hidden');
+
+            document.getElementById('quiz-score-display').innerText = `${correctCount} / ${currentQuizQuestions.length} (${scorePercent}%)`;
+
+            const name = document.getElementById('student-name').value;
+            const sClass = document.getElementById('student-class').value;
+            const today = new Date().toISOString().split('T')[0];
+
+            document.getElementById('cert-name').innerText = name;
+            document.getElementById('cert-class').innerText = `Kelas: ${sClass}`;
+            document.getElementById('cert-score').innerText = `${scorePercent}%`;
+            document.getElementById('cert-level').innerText = `Aras ${currentQuizLevel.toUpperCase()}`;
+            document.getElementById('cert-date').innerText = `Tarikh: ${today}`;
+        }
+
+        function resetQuiz() {
+            document.getElementById('kuiz-result-card').classList.add('hidden');
+            document.getElementById('kuiz-setup-card').classList.remove('hidden');
+        }
+
+        function downloadCertificate() {
+            const certElement = document.getElementById('certificate-template');
+            html2canvas(certElement, { scale: 2, useCORS: true }).then(canvas => {
+                const link = document.createElement('a');
+                const studentName = document.getElementById('student-name').value || 'Murid';
+                link.download = `Sijil_JEBAT_${studentName.replace(/\s+/g, '_')}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        // --- RENDER GUESTBOOK / SHEET PELAWAT ---
+        function renderGuestbookUI(comments) {
+            const container = document.getElementById('guestbook-list');
+            if(!container) return;
+
+            if (comments.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">Belum ada ucapan pelawat. Jadilah yang pertama! ✨</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            comments.forEach(c => {
+                const tarikh = c.timestamp ? new Date(c.timestamp).toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Baru sahaja';
+                const card = `
+                    <div class="bg-slate-900/60 p-4 rounded-xl border border-white/5 space-y-1 hover:border-emerald-500/30 transition">
+                        <div class="flex justify-between items-start">
+                            <div class="font-bold text-emerald-300 text-xs sm:text-sm flex items-center gap-1.5">
+                                <span>👤</span> ${escapeHtml(c.nama)} 
+                                <span class="text-[10px] text-slate-400 font-normal">(${escapeHtml(c.sekolah)})</span>
+                            </div>
+                            <span class="text-[10px] text-slate-500">${tarikh}</span>
+                        </div>
+                        <p class="text-xs text-slate-300 italic pt-1">"${escapeHtml(c.mesej)}"</p>
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        window.onload = function() {
+            lucide.createIcons();
+            loadNota();
+            loadJelajahButtons();
+            renderJelajahDisplay();
+        };
+    </script>
+</body>
+</html>
+
