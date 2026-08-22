@@ -147,22 +147,27 @@
                     });
                 }
 
-                // 2. Cuba hantar data ke Google Apps Script / Form webhook jika dikonfigurasi
-                const appScriptUrl = localStorage.getItem('jebat_apps_script_url');
+                // 2. Hantar data ke Google Sheet via Google Apps Script jika dikonfigurasi
+                const appScriptUrl = localStorage.getItem('jebat_apps_script_url') || document.getElementById('apps-script-input')?.value?.trim();
                 if (appScriptUrl) {
                     fetch(appScriptUrl, {
                         method: 'POST',
                         mode: 'no-cors',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ nama, sekolah, mesej, tarikh: new Date().toLocaleString('ms-MY') })
-                    }).catch(e => console.log(e));
+                        body: JSON.stringify({ 
+                            nama: nama, 
+                            sekolah: sekolah || 'Pengembara Bahasa', 
+                            mesej: mesej, 
+                            tarikh: new Date().toLocaleString('ms-MY') 
+                        })
+                    }).catch(e => console.log("Google Apps Script sync note:", e));
                 }
 
                 document.getElementById('pelawat-nama').value = '';
                 document.getElementById('pelawat-sekolah').value = '';
                 document.getElementById('pelawat-mesej').value = '';
                 showModalAlert("✨ Ucapan anda berjaya dihantar dan direkodkan!");
-                window.fetchGoogleSheetData();
+                setTimeout(() => window.fetchGoogleSheetData(), 1500);
             } catch (e) {
                 console.error("Ralat menyimpan dokumen:", e);
                 showModalAlert("Gagal menyimpan. Sila cuba lagi.");
@@ -170,6 +175,17 @@
                 btn.disabled = false;
                 btn.innerText = "Hantar Ucapan Magis ✨";
             }
+        }
+
+        // Simpan URL Google Apps Script
+        window.simpanAppsScriptUrl = function() {
+            const url = document.getElementById('apps-script-input').value.trim();
+            if(!url) {
+                showModalAlert("Sila masukkan Web App URL Google Apps Script anda.");
+                return;
+            }
+            localStorage.setItem('jebat_apps_script_url', url);
+            showModalAlert("✅ URL Google Apps Script berjaya disimpan! Borang kini dihubungkan terus ke Google Sheet anda.");
         }
     </script>
 
@@ -634,6 +650,40 @@
                     <a href="https://docs.google.com/spreadsheets/d/1WMf65_MqQqEiAsRG6-mVP9vW39YDHaxA4Z6aBkfrSJA/edit?usp=sharing" target="_blank" class="px-4 py-2 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-bold flex items-center gap-2 transition shadow">
                         <span>📊</span> Buka Google Sheet Rasmi <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
                     </a>
+                </div>
+
+                <!-- KOTAK SYNC GOOGLE SHEET SETUP -->
+                <div class="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-4 mb-6">
+                    <div class="flex justify-between items-center cursor-pointer" onclick="document.getElementById('setup-sheet-box').classList.toggle('hidden')">
+                        <div class="flex items-center gap-2 text-xs font-bold text-emerald-300">
+                            <span>⚙️</span> Tetapan Pautan Google Sheet (Penerimaan Auto-Entry)
+                        </div>
+                        <span class="text-xs text-emerald-400 font-semibold underline">Panduan Setup 1 Minit 🔽</span>
+                    </div>
+
+                    <div id="setup-sheet-box" class="hidden mt-4 pt-3 border-t border-emerald-500/20 text-xs text-slate-300 space-y-3">
+                        <p class="font-bold text-amber-300">Bagaimana nak hubungkan borang ini dengan Google Sheet anda?</p>
+                        <ol class="list-decimal list-inside space-y-1.5 text-slate-300 text-[11px] leading-relaxed">
+                            <li>Buka Google Sheet anda (`1WMf65_MqQqEiAsRG6...`), klik <b class="text-white">Extensions ➔ Apps Script</b>.</li>
+                            <li>Padam semua kod sedia ada, dan tampal kod berikut:
+                                <pre class="bg-slate-950 p-2.5 rounded-lg text-emerald-400 font-mono text-[10px] my-1 overflow-x-auto select-all">function doPost(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var data = JSON.parse(e.postData.contents);
+  sheet.appendRow([data.nama, data.sekolah, data.mesej, data.tarikh]);
+  return ContentService.createTextOutput("OK");
+}</pre>
+                            </li>
+                            <li>Klik <b class="text-white">Deploy ➔ New deployment</b> ➔ Pilih Type <b class="text-white">Web app</b> ➔ Tetapkan <i>"Who has access"</i> kepada <b class="text-amber-300">Anyone</b> ➔ Klik <b>Deploy</b>.</li>
+                            <li>Salin <b>Web App URL</b> yang diberikan dan tampal di bawah:</li>
+                        </ol>
+
+                        <div class="flex gap-2 pt-1">
+                            <input type="text" id="apps-script-input" placeholder="Tampal Google Apps Script Web App URL di sini..." class="flex-grow px-3 py-2 rounded-xl bg-slate-950 border border-emerald-500/40 text-white text-xs focus:outline-none">
+                            <button onclick="window.simpanAppsScriptUrl()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition">
+                                Simpan Pautan
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
