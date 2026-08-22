@@ -80,6 +80,7 @@
         const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1WMf65_MqQqEiAsRG6-mVP9vW39YDHaxA4Z6aBkfrSJA/edit?usp=sharing";
         const GOOGLE_SHEET_ID = "1WMf65_MqQqEiAsRG6-mVP9vW39YDHaxA4Z6aBkfrSJA";
         window.googleSheetComments = [];
+        window.localSubmittedComments = [];
 
         // Ambil data terus dari Google Sheet secara live via GViz API
         window.fetchGoogleSheetData = async function() {
@@ -95,7 +96,8 @@
                 const sheetComments = [];
 
                 rows.forEach((row, index) => {
-                    if (index === 0 && row.c[0]?.v?.toString().toLowerCase().includes('nama')) return; // langkau header
+                    if (index === 0 && row.c && row.c[0]?.v?.toString().toLowerCase().includes('nama')) return; // langkau header
+                    if (!row.c) return;
                     const nama = row.c[0]?.v || row.c[0]?.f || '';
                     const sekolah = row.c[1]?.v || row.c[1]?.f || 'Pelawat Google Sheet';
                     const mesej = row.c[2]?.v || row.c[2]?.f || '';
@@ -134,6 +136,17 @@
             btn.disabled = true;
             btn.innerText = "Mengirim...";
 
+            // PAPARAN SERTA-MERTA (Instant Optimistic UI Update)
+            const tempComment = {
+                nama: nama,
+                sekolah: sekolah || 'Pengembara Bahasa',
+                mesej: mesej,
+                timestamp: Date.now(),
+                source: 'Terkini'
+            };
+            window.localSubmittedComments.unshift(tempComment);
+            renderGuestbookUI();
+
             try {
                 // 1. Simpan ke Firebase Firestore
                 if (window.currentUser) {
@@ -166,8 +179,8 @@
                 document.getElementById('pelawat-nama').value = '';
                 document.getElementById('pelawat-sekolah').value = '';
                 document.getElementById('pelawat-mesej').value = '';
-                showModalAlert("✨ Ucapan anda berjaya dihantar dan direkodkan!");
-                setTimeout(() => window.fetchGoogleSheetData(), 1500);
+                showModalAlert("✨ Ucapan anda berjaya dihantar dan dipaparkan terus di ruangan komen!");
+                setTimeout(() => window.fetchGoogleSheetData(), 2000);
             } catch (e) {
                 console.error("Ralat menyimpan dokumen:", e);
                 showModalAlert("Gagal menyimpan. Sila cuba lagi.");
@@ -713,12 +726,19 @@
 
                     <!-- Senarai Komen Pelawat -->
                     <div class="lg:col-span-2">
-                        <h3 class="text-base font-bold text-white mb-4 flex items-center justify-between">
-                            <span class="flex items-center gap-2"><i data-lucide="list" class="w-4 h-4 text-emerald-400"></i> Lembaran Komen Pelawat</span>
-                            <span class="text-xs text-emerald-400 bg-emerald-950 px-2.5 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1.5">
-                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Live Google Sheet & Firebase
-                            </span>
-                        </h3>
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                            <h3 class="text-base font-bold text-white flex items-center gap-2">
+                                <i data-lucide="list" class="w-4 h-4 text-emerald-400"></i> Lembaran Komen Pelawat
+                            </h3>
+                            <div class="flex items-center gap-2">
+                                <button onclick="window.fetchGoogleSheetData()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-white/10 transition flex items-center gap-1">
+                                    🔄 Muat Semula
+                                </button>
+                                <span class="text-xs text-emerald-400 bg-emerald-950 px-2.5 py-1 rounded-full border border-emerald-500/30 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Live Google Sheet
+                                </span>
+                            </div>
+                        </div>
 
                         <div id="guestbook-list" class="space-y-3 max-h-[450px] overflow-y-auto pr-2">
                             <div class="text-center py-8 text-slate-500 text-xs">Memuatkan lembaran pelawat...</div>
@@ -1177,32 +1197,30 @@
                 starLabel = "Teruskan Usaha! (1 Bintang)";
             }
 
-            if (isSuccess && lives > 0) {
-                icon.innerText = "🏆";
-                title.innerText = "Tahniah! Kembara Tamat!";
-                subtitle.innerText = "Anda berjaya menyelesaikan cabaran Zon JeBaT!";
-            } else {
-                icon.innerText = "💀";
-                title.innerText = "Kembara Terhenti!";
-                subtitle.innerText = "Nyawa anda telah habis. Cuba lagi untuk skor penuh!";
-            }
-
-            starDisplay.innerText = stars;
-            starText.innerText = `${starLabel} (${Math.round(percentage)}%)`;
-
-            modal.classList.remove('hidden');
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
-        }
-
-        // Paparan Senarai Komen Pelawat (Penggabungan Firestore + Google Sheet)
+        // Paparan Senarai Komen Pelawat (Penggabungan Firestore + Google Sheet + Tempatan)
         function renderGuestbookUI() {
             const container = document.getElementById('guestbook-list');
             if(!container) return;
 
-            const allComments = [...(window.googleSheetComments || []), ...(window.firebaseComments || [])];
+            // Gabungkan komen tempatan (serta-merta), Google Sheet dan Firebase
+            const combinedMap = new Map();
+
+            (window.localSubmittedComments || []).forEach(c => {
+                const key = `${c.nama}_${c.mesej}`;
+                combinedMap.set(key, c);
+            });
+
+            (window.firebaseComments || []).forEach(c => {
+                const key = `${c.nama}_${c.mesej}`;
+                if (!combinedMap.has(key)) combinedMap.set(key, c);
+            });
+
+            (window.googleSheetComments || []).forEach(c => {
+                const key = `${c.nama}_${c.mesej}`;
+                if (!combinedMap.has(key)) combinedMap.set(key, c);
+            });
+
+            const allComments = Array.from(combinedMap.values());
 
             if (allComments.length === 0) {
                 container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">Belum ada ucapan pelawat. Jadilah yang pertama! ✨</div>`;
@@ -1211,16 +1229,18 @@
 
             container.innerHTML = '';
             allComments.forEach(c => {
-                const tarikh = typeof c.timestamp === 'number' ? new Date(c.timestamp).toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric' }) : (c.timestamp || 'Baru sahaja');
+                const tarikh = typeof c.timestamp === 'number' ? new Date(c.timestamp).toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : (c.timestamp || 'Baru sahaja');
                 const isGoogleSheet = c.source === 'Google Sheet';
+                const isLocal = c.source === 'Terkini';
 
                 const card = `
-                    <div class="bg-slate-900/60 p-4 rounded-xl border border-white/5 space-y-1 hover:border-emerald-500/30 transition">
+                    <div class="bg-slate-900/60 p-4 rounded-xl border ${isLocal ? 'border-emerald-500/60 bg-emerald-950/20' : 'border-white/5'} space-y-1 hover:border-emerald-500/30 transition">
                         <div class="flex justify-between items-start">
                             <div class="font-bold text-emerald-300 text-xs sm:text-sm flex items-center gap-1.5">
-                                <span>${isGoogleSheet ? '📊' : '👤'}</span> ${escapeHtml(c.nama)} 
+                                <span>${isGoogleSheet ? '📊' : (isLocal ? '✨' : '👤')}</span> ${escapeHtml(c.nama)} 
                                 <span class="text-[10px] text-slate-400 font-normal">(${escapeHtml(c.sekolah)})</span>
                                 ${isGoogleSheet ? '<span class="text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-mono">Sheet</span>' : ''}
+                                ${isLocal ? '<span class="text-[9px] bg-amber-950 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded font-mono">Baru Dihantar</span>' : ''}
                             </div>
                             <span class="text-[10px] text-slate-500">${tarikh}</span>
                         </div>
