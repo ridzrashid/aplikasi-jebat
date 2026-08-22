@@ -17,7 +17,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Konfigurasi Firebase
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
@@ -34,8 +34,13 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // Tampal URL Web App Apps Script rasmi anda di sini jika ingin hardcode secara terus untuk semua murid
+        window.DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyAAoYJdFmiC6LZ2CMVmu-YItPmcomKXVXYvwowv5IkVd2JyOzM1LDoIGSzhnKQELaR/exec'; 
+
         window.db = db;
         window.appId = appId;
+        // Ambil dari LocalStorage atau Default URL secara automatik
+        window.globalAppsScriptUrl = localStorage.getItem('jebat_apps_script_url') || window.DEFAULT_APPS_SCRIPT_URL;
 
         // Logik Pengesahan Pengguna
         async function initAuth() {
@@ -55,8 +60,45 @@
             if (user) {
                 window.currentUser = user;
                 listenToGuestbook();
+                listenToSheetConfig();
             }
         });
+
+        // Mendengar Tetapan URL Apps Script dari Awan secara Realtime untuk Semua Peranti
+        function listenToSheetConfig() {
+            if (!window.currentUser) return;
+            const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'sheetConfig');
+            onSnapshot(configRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data && data.url) {
+                        window.globalAppsScriptUrl = data.url;
+                        localStorage.setItem('jebat_apps_script_url', data.url);
+                        updateSheetStatusUI(true, data.url);
+                    }
+                } else {
+                    updateSheetStatusUI(false, '');
+                }
+            }, (err) => console.log("Ralat listen config:", err));
+        }
+
+        function updateSheetStatusUI(isConnected, url) {
+            const input = document.getElementById('apps-script-input');
+            const badge = document.getElementById('sheet-status-badge');
+            if (input && url && document.activeElement !== input) {
+                input.value = url;
+            }
+            if (badge) {
+                if (isConnected || url) {
+                    badge.className = "text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-500/50 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1";
+                    badge.innerHTML = "<span>✅</span> Terhubung & Sedia Digunakan";
+                } else {
+                    badge.className = "text-[10px] bg-amber-950 text-amber-300 border border-amber-500/50 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1";
+                    badge.innerHTML = "<span>⚠️</span> Belum Disimpan di Awan";
+                }
+            }
+        }
+        window.updateSheetStatusUI = updateSheetStatusUI;
 
         // Pengambil Data Masa Nyata untuk Zon Pelawat
         function listenToGuestbook() {
@@ -162,7 +204,9 @@
                     });
                 }
 
-                const appScriptUrl = localStorage.getItem('jebat_apps_script_url') || document.getElementById('apps-script-input')?.value?.trim();
+                // Ambil URL daripada memori / LocalStorage / Default automatik
+                const appScriptUrl = window.globalAppsScriptUrl || localStorage.getItem('jebat_apps_script_url') || document.getElementById('apps-script-input')?.value?.trim() || window.DEFAULT_APPS_SCRIPT_URL;
+                
                 if (appScriptUrl) {
                     fetch(appScriptUrl, {
                         method: 'POST',
@@ -191,14 +235,25 @@
             }
         };
 
-        window.simpanAppsScriptUrl = function() {
+        window.simpanAppsScriptUrl = async function() {
             const url = document.getElementById('apps-script-input').value.trim();
             if(!url) {
                 window.showModalAlert("Sila masukkan Web App URL Google Apps Script anda.");
                 return;
             }
             localStorage.setItem('jebat_apps_script_url', url);
-            window.showModalAlert("✅ URL Google Apps Script berjaya disimpan! Borang kini dihubungkan terus ke Google Sheet anda.");
+            window.globalAppsScriptUrl = url;
+
+            try {
+                if (window.currentUser) {
+                    const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'sheetConfig');
+                    await setDoc(configRef, { url: url, updatedAt: Date.now() });
+                }
+                window.showModalAlert("✅ URL Google Apps Script berjaya disimpan ke AWAN! Semua peranti lain kini berhubung secara automatik ke Google Sheet anda.");
+            } catch (e) {
+                console.error("Ralat simpan ke awan:", e);
+                window.showModalAlert("✅ URL disimpan secara tempatan.");
+            }
         };
     </script>
 
@@ -668,11 +723,16 @@
 
                 <!-- KOTAK SYNC GOOGLE SHEET SETUP -->
                 <div class="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-4 mb-6">
-                    <div class="flex justify-between items-center cursor-pointer" onclick="document.getElementById('setup-sheet-box').classList.toggle('hidden')">
+                    <div class="flex justify-between items-center cursor-pointer flex-wrap gap-2" onclick="document.getElementById('setup-sheet-box').classList.toggle('hidden')">
                         <div class="flex items-center gap-2 text-xs font-bold text-emerald-300">
                             <span>⚙️</span> Tetapan Pautan Google Sheet (Penerimaan Auto-Entry)
                         </div>
-                        <span class="text-xs text-emerald-400 font-semibold underline">Panduan Setup 1 Minit 🔽</span>
+                        <div class="flex items-center gap-2">
+                            <span id="sheet-status-badge" class="text-[10px] bg-amber-950 text-amber-300 border border-amber-500/50 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1">
+                                <span>⚠️</span> Belum Disimpan di Awan
+                            </span>
+                            <span class="text-xs text-emerald-400 font-semibold underline">Panduan Setup 1 Minit 🔽</span>
+                        </div>
                     </div>
 
                     <div id="setup-sheet-box" class="hidden mt-4 pt-3 border-t border-emerald-500/20 text-xs text-slate-300 space-y-3">
@@ -1577,6 +1637,15 @@
             loadNota();
             loadJelajahButtons();
             renderJelajahDisplay();
+            
+            const savedUrl = window.globalAppsScriptUrl || localStorage.getItem('jebat_apps_script_url') || window.DEFAULT_APPS_SCRIPT_URL;
+            if (savedUrl) {
+                window.globalAppsScriptUrl = savedUrl;
+                if (typeof window.updateSheetStatusUI === 'function') {
+                    window.updateSheetStatusUI(true, savedUrl);
+                }
+            }
+
             window.fetchGoogleSheetData();
         };
     </script>
