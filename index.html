@@ -70,14 +70,15 @@
                 });
                 comments.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
                 window.firebaseComments = comments;
-                renderGuestbookUI();
+                if (typeof window.renderGuestbookUI === 'function') {
+                    window.renderGuestbookUI();
+                }
             }, (error) => {
                 console.error("Ralat mengambil komen:", error);
             });
         }
 
         // Pautan Google Sheet Rasmi
-        const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1WMf65_MqQqEiAsRG6-mVP9vW39YDHaxA4Z6aBkfrSJA/edit?usp=sharing";
         const GOOGLE_SHEET_ID = "1WMf65_MqQqEiAsRG6-mVP9vW39YDHaxA4Z6aBkfrSJA";
         window.googleSheetComments = [];
         window.localSubmittedComments = [];
@@ -88,7 +89,6 @@
                 const gvizUrl = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json`;
                 const res = await fetch(gvizUrl);
                 const text = await res.text();
-                // Google GViz pulangkan JSONP-like format, potong wrapper
                 const jsonText = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
                 const data = JSON.parse(jsonText);
                 
@@ -96,7 +96,7 @@
                 const sheetComments = [];
 
                 rows.forEach((row, index) => {
-                    if (index === 0 && row.c && row.c[0]?.v?.toString().toLowerCase().includes('nama')) return; // langkau header
+                    if (index === 0 && row.c && row.c[0]?.v?.toString().toLowerCase().includes('nama')) return;
                     if (!row.c) return;
                     const nama = row.c[0]?.v || row.c[0]?.f || '';
                     const sekolah = row.c[1]?.v || row.c[1]?.f || 'Pelawat Google Sheet';
@@ -115,7 +115,9 @@
                 });
 
                 window.googleSheetComments = sheetComments;
-                renderGuestbookUI();
+                if (typeof window.renderGuestbookUI === 'function') {
+                    window.renderGuestbookUI();
+                }
             } catch (err) {
                 console.log("Notis Google Sheet GViz:", err);
             }
@@ -128,7 +130,7 @@
             const mesej = document.getElementById('pelawat-mesej').value.trim();
 
             if (!nama || !mesej) {
-                showModalAlert("Sila isi nama dan ucapan anda sebelum menghantar!");
+                window.showModalAlert("Sila isi nama dan ucapan anda sebelum menghantar!");
                 return;
             }
 
@@ -136,7 +138,6 @@
             btn.disabled = true;
             btn.innerText = "Mengirim...";
 
-            // PAPARAN SERTA-MERTA (Instant Optimistic UI Update)
             const tempComment = {
                 nama: nama,
                 sekolah: sekolah || 'Pengembara Bahasa',
@@ -145,10 +146,11 @@
                 source: 'Terkini'
             };
             window.localSubmittedComments.unshift(tempComment);
-            renderGuestbookUI();
+            if (typeof window.renderGuestbookUI === 'function') {
+                window.renderGuestbookUI();
+            }
 
             try {
-                // 1. Simpan ke Firebase Firestore
                 if (window.currentUser) {
                     const guestbookRef = collection(db, 'artifacts', appId, 'public', 'data', 'guestbook');
                     await addDoc(guestbookRef, {
@@ -160,7 +162,6 @@
                     });
                 }
 
-                // 2. Hantar data ke Google Sheet via Google Apps Script jika dikonfigurasi
                 const appScriptUrl = localStorage.getItem('jebat_apps_script_url') || document.getElementById('apps-script-input')?.value?.trim();
                 if (appScriptUrl) {
                     fetch(appScriptUrl, {
@@ -179,27 +180,26 @@
                 document.getElementById('pelawat-nama').value = '';
                 document.getElementById('pelawat-sekolah').value = '';
                 document.getElementById('pelawat-mesej').value = '';
-                showModalAlert("✨ Ucapan anda berjaya dihantar dan dipaparkan terus di ruangan komen!");
+                window.showModalAlert("✨ Ucapan anda berjaya dihantar dan dipaparkan terus di ruangan komen!");
                 setTimeout(() => window.fetchGoogleSheetData(), 2000);
             } catch (e) {
                 console.error("Ralat menyimpan dokumen:", e);
-                showModalAlert("Gagal menyimpan. Sila cuba lagi.");
+                window.showModalAlert("Gagal menyimpan. Sila cuba lagi.");
             } finally {
                 btn.disabled = false;
                 btn.innerText = "Hantar Ucapan Magis ✨";
             }
-        }
+        };
 
-        // Simpan URL Google Apps Script
         window.simpanAppsScriptUrl = function() {
             const url = document.getElementById('apps-script-input').value.trim();
             if(!url) {
-                showModalAlert("Sila masukkan Web App URL Google Apps Script anda.");
+                window.showModalAlert("Sila masukkan Web App URL Google Apps Script anda.");
                 return;
             }
             localStorage.setItem('jebat_apps_script_url', url);
-            showModalAlert("✅ URL Google Apps Script berjaya disimpan! Borang kini dihubungkan terus ke Google Sheet anda.");
-        }
+            window.showModalAlert("✅ URL Google Apps Script berjaya disimpan! Borang kini dihubungkan terus ke Google Sheet anda.");
+        };
     </script>
 
     <style>
@@ -211,7 +211,6 @@
         .font-cinzel {
             font-family: 'Cinzel Decorative', serif;
         }
-        /* Rekabentuk Glassmorphism */
         .glass-card {
             background: rgba(15, 23, 42, 0.75);
             backdrop-filter: blur(16px);
@@ -251,7 +250,6 @@
 </head>
 <body class="min-h-screen flex flex-col justify-between relative overflow-x-hidden">
 
-    <!-- Pencahayaan Latar Belakang -->
     <div class="fixed top-0 left-1/4 w-96 h-96 bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none"></div>
     <div class="fixed bottom-0 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[120px] pointer-events-none"></div>
     <div class="fixed top-1/2 right-10 w-80 h-80 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none"></div>
@@ -293,7 +291,7 @@
         </div>
     </header>
 
-    <!-- UTAMA -->
+    <!-- MAIN CONTENT -->
     <main class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full relative z-10">
 
         <!-- BAHAGIAN UTAMA -->
@@ -327,7 +325,7 @@
                     <button onclick="showSection('game')" class="p-5 bg-gradient-to-b from-amber-500/20 to-amber-900/30 border border-amber-500/40 rounded-2xl transition-all text-left hover:-translate-y-1">
                         <div class="text-3xl mb-2">🍄</div>
                         <h3 class="font-bold text-amber-300 text-sm">3. Zon JeBaT</h3>
-                        <p class="text-[11px] text-amber-200/70 mt-1">Kembara Mario Fantasi & Cabaran Blok.</p>
+                        <p class="text-[11px] text-amber-200/70 mt-1">Kembara Mario Fantasi & Penilaian Bintang.</p>
                     </button>
                     <button onclick="showSection('kuiz')" class="p-5 glass-card rounded-2xl hover:border-purple-500/50 transition-all text-left hover:-translate-y-1">
                         <div class="text-3xl mb-2">🏆</div>
@@ -448,7 +446,7 @@
                     </div>
                 </div>
 
-                <!-- Modal Penamat Permainan (Game Finish / Game Over Modal) -->
+                <!-- Modal Penamat Permainan -->
                 <div id="game-finish-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-lg z-50 flex items-center justify-center p-4 hidden">
                     <div class="glass-card text-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center border border-amber-400/60 glow-gold">
                         <div id="finish-icon" class="text-5xl mb-3">🏆</div>
@@ -811,7 +809,8 @@
         // Tukar Tab Navigasi
         function showSection(sectionId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`sec-${sectionId}`).classList.remove('hidden');
+            const targetSection = document.getElementById(`sec-${sectionId}`);
+            if (targetSection) targetSection.classList.remove('hidden');
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
             if(sectionId === 'game') initGame();
@@ -821,14 +820,21 @@
             document.getElementById('modal-alert-text').innerText = text;
             document.getElementById('modal-alert').classList.remove('hidden');
         }
+        window.showModalAlert = showModalAlert;
 
         function closeModalAlert() {
             document.getElementById('modal-alert').classList.add('hidden');
         }
 
+        function closeModal(id) {
+            const modalEl = document.getElementById(id);
+            if (modalEl) modalEl.classList.add('hidden');
+        }
+
         // Muat Nota Ringkas
         function loadNota() {
             const container = document.getElementById('nota-container');
+            if (!container) return;
             container.innerHTML = '';
             dataPenjodoh.forEach(item => {
                 const card = `
@@ -856,6 +862,7 @@
 
         function loadJelajahButtons() {
             const container = document.getElementById('jelajah-buttons');
+            if (!container) return;
             container.innerHTML = '';
             dataPenjodoh.forEach(item => {
                 const isSelected = item.nama === selectedPenjodoh.nama;
@@ -873,6 +880,7 @@
 
         function renderJelajahDisplay() {
             const display = document.getElementById('jelajah-display');
+            if (!display) return;
             display.innerHTML = `
                 <div class="flex flex-col md:flex-row gap-6 items-center">
                     <div class="bg-slate-900/80 p-6 rounded-2xl border border-cyan-500/30 text-center min-w-[180px]">
@@ -936,6 +944,7 @@
 
         function initGame() {
             canvas = document.getElementById('marioCanvas');
+            if(!canvas) return;
             ctx = canvas.getContext('2d');
 
             mario.x = 50;
@@ -1197,12 +1206,139 @@
                 starLabel = "Teruskan Usaha! (1 Bintang)";
             }
 
+            if (starDisplay) starDisplay.innerText = stars;
+            if (starText) starText.innerText = `${starLabel} (${Math.round(percentage)}%)`;
+
+            if (isSuccess) {
+                if (icon) icon.innerText = "🏆";
+                if (title) title.innerText = "Kembara Tamat!";
+                if (subtitle) subtitle.innerText = "Tahniah! Anda telah berjaya menamatkan kembara!";
+            } else {
+                if (icon) icon.innerText = "💔";
+                if (title) title.innerText = "Permainan Tamat";
+                if (subtitle) subtitle.innerText = "Kehabisan nyawa! Cuba lagi untuk memperbaiki markah.";
+            }
+
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        let currentQuizLevel = 'mudah';
+        let currentQuizList = [];
+        let currentQuizIdx = 0;
+        let quizScore = 0;
+        let studentData = { name: '', class: '' };
+
+        function startQuiz() {
+            const nameInput = document.getElementById('student-name').value.trim();
+            const classInput = document.getElementById('student-class').value.trim();
+
+            if (!nameInput) {
+                showModalAlert("Sila masukkan Nama Penuh Murid dahulu!");
+                return;
+            }
+
+            studentData.name = nameInput;
+            studentData.class = classInput || 'Murid JEBAT';
+
+            const selectedRadio = document.querySelector('input[name="kuiz-level"]:checked');
+            currentQuizLevel = selectedRadio ? selectedRadio.value : 'mudah';
+            currentQuizList = quizData[currentQuizLevel] || quizData.mudah;
+
+            currentQuizIdx = 0;
+            quizScore = 0;
+
+            document.getElementById('kuiz-setup-card').classList.add('hidden');
+            document.getElementById('kuiz-play-card').classList.remove('hidden');
+            document.getElementById('kuiz-result-card').classList.add('hidden');
+
+            renderQuizQuestion();
+        }
+
+        function renderQuizQuestion() {
+            const q = currentQuizList[currentQuizIdx];
+            document.getElementById('quiz-progress-text').innerText = `Soalan ${currentQuizIdx + 1} / ${currentQuizList.length}`;
+            document.getElementById('quiz-level-badge').innerText = `Aras ${currentQuizLevel}`;
+            document.getElementById('quiz-question').innerText = q.q;
+
+            const optsContainer = document.getElementById('quiz-options');
+            optsContainer.innerHTML = '';
+
+            const nextBtn = document.getElementById('quiz-next-btn');
+            nextBtn.classList.add('hidden');
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-3.5 rounded-xl border border-white/10 hover:border-purple-400 hover:bg-purple-950/30 font-semibold text-slate-200 transition text-sm flex justify-between items-center";
+                btn.innerHTML = `<span>${String.fromCharCode(65 + idx)}. ${opt}</span>`;
+                btn.onclick = () => selectQuizOption(idx, btn, q.ans);
+                optsContainer.appendChild(btn);
+            });
+        }
+
+        function selectQuizOption(selectedIdx, btn, correctIdx) {
+            const optsContainer = document.getElementById('quiz-options');
+            const buttons = optsContainer.querySelectorAll('button');
+            buttons.forEach(b => b.disabled = true);
+
+            if (selectedIdx === correctIdx) {
+                quizScore++;
+                btn.classList.add('bg-emerald-900/60', 'border-emerald-500', 'text-emerald-200');
+            } else {
+                btn.classList.add('bg-red-900/60', 'border-red-500', 'text-red-200');
+                if (buttons[correctIdx]) {
+                    buttons[correctIdx].classList.add('bg-emerald-900/60', 'border-emerald-500', 'text-emerald-200');
+                }
+            }
+
+            document.getElementById('quiz-next-btn').classList.remove('hidden');
+        }
+
+        function nextQuizQuestion() {
+            currentQuizIdx++;
+            if (currentQuizIdx < currentQuizList.length) {
+                renderQuizQuestion();
+            } else {
+                showQuizResult();
+            }
+        }
+
+        function showQuizResult() {
+            document.getElementById('kuiz-play-card').classList.add('hidden');
+            document.getElementById('kuiz-result-card').classList.remove('hidden');
+
+            const percent = Math.round((quizScore / currentQuizList.length) * 100);
+            document.getElementById('quiz-score-display').innerText = `${quizScore} / ${currentQuizList.length} (${percent}%)`;
+
+            document.getElementById('cert-name').innerText = studentData.name;
+            document.getElementById('cert-class').innerText = `Kelas / Sekolah: ${studentData.class}`;
+            document.getElementById('cert-score').innerText = `${percent}%`;
+            document.getElementById('cert-level').innerText = `Aras ${currentQuizLevel.toUpperCase()}`;
+            document.getElementById('cert-date').innerText = `Tarikh: ${new Date().toLocaleDateString('ms-MY')}`;
+        }
+
+        function resetQuiz() {
+            document.getElementById('kuiz-result-card').classList.add('hidden');
+            document.getElementById('kuiz-setup-card').classList.remove('hidden');
+        }
+
+        function downloadCertificate() {
+            const certElement = document.getElementById('certificate-template');
+            if(!certElement) return;
+
+            html2canvas(certElement, { scale: 2 }).then(canvas => {
+                const image = canvas.toDataURL("image/png");
+                const link = document.createElement('a');
+                link.download = `Sijil_JEBAT_${studentData.name.replace(/\s+/g, '_')}.png`;
+                link.href = image;
+                link.click();
+            });
+        }
+
         // Paparan Senarai Komen Pelawat (Penggabungan Firestore + Google Sheet + Tempatan)
         function renderGuestbookUI() {
             const container = document.getElementById('guestbook-list');
             if(!container) return;
 
-            // Gabungkan komen tempatan (serta-merta), Google Sheet dan Firebase
             const combinedMap = new Map();
 
             (window.localSubmittedComments || []).forEach(c => {
@@ -1250,6 +1386,7 @@
                 container.innerHTML += card;
             });
         }
+        window.renderGuestbookUI = renderGuestbookUI;
 
         function escapeHtml(text) {
             if (!text) return '';
