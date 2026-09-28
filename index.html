@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JEBAT - Jejak Bahasa Tercinta (Edisi Fantasi)</title>
+    <title>JEBAT - Jejak Bahasa Tercinta (Edisi Fantasi & Zon Murid)</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -34,12 +34,11 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Tampal URL Web App Apps Script rasmi anda di sini jika ingin hardcode secara terus untuk semua murid
+        // URL Web App Apps Script
         window.DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyAAoYJdFmiC6LZ2CMVmu-YItPmcomKXVXYvwowv5IkVd2JyOzM1LDoIGSzhnKQELaR/exec'; 
 
         window.db = db;
         window.appId = appId;
-        // Ambil dari LocalStorage atau Default URL secara automatik
         window.globalAppsScriptUrl = localStorage.getItem('jebat_apps_script_url') || window.DEFAULT_APPS_SCRIPT_URL;
 
         // Logik Pengesahan Pengguna
@@ -64,7 +63,7 @@
             }
         });
 
-        // Mendengar Tetapan URL Apps Script dari Awan secara Realtime untuk Semua Peranti
+        // Mendengar Tetapan URL Apps Script dari Awan secara Realtime
         function listenToSheetConfig() {
             if (!window.currentUser) return;
             const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'sheetConfig');
@@ -120,12 +119,10 @@
             });
         }
 
-        // Pautan Google Sheet Rasmi
         const GOOGLE_SHEET_ID = "1WMf65_MqQqEiAsRG6-mVP9vW39YDHaxA4Z6aBkfrSJA";
         window.googleSheetComments = [];
         window.localSubmittedComments = [];
 
-        // Ambil data terus dari Google Sheet secara live via GViz API
         window.fetchGoogleSheetData = async function() {
             try {
                 const gvizUrl = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json`;
@@ -165,7 +162,6 @@
             }
         };
 
-        // Simpan Komen Pelawat (Sokongan Firebase + Google Sheet Sync)
         window.hantarKomen = async function() {
             const nama = document.getElementById('pelawat-nama').value.trim();
             const sekolah = document.getElementById('pelawat-sekolah').value.trim();
@@ -204,7 +200,6 @@
                     });
                 }
 
-                // Ambil URL daripada memori / LocalStorage / Default automatik
                 const appScriptUrl = window.globalAppsScriptUrl || localStorage.getItem('jebat_apps_script_url') || document.getElementById('apps-script-input')?.value?.trim() || window.DEFAULT_APPS_SCRIPT_URL;
                 
                 if (appScriptUrl) {
@@ -249,7 +244,7 @@
                     const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'config', 'sheetConfig');
                     await setDoc(configRef, { url: url, updatedAt: Date.now() });
                 }
-                window.showModalAlert("✅ URL Google Apps Script berjaya disimpan ke AWAN! Semua peranti lain kini berhubung secara automatik ke Google Sheet anda.");
+                window.showModalAlert("✅ URL Google Apps Script berjaya disimpan ke AWAN!");
             } catch (e) {
                 console.error("Ralat simpan ke awan:", e);
                 window.showModalAlert("✅ URL disimpan secara tempatan.");
@@ -284,6 +279,9 @@
         }
         .glow-cyan {
             box-shadow: 0 0 25px rgba(6, 182, 212, 0.3);
+        }
+        .glow-purple {
+            box-shadow: 0 0 25px rgba(168, 85, 247, 0.3);
         }
         canvas {
             image-rendering: pixelated;
@@ -327,19 +325,23 @@
             </div>
 
             <nav class="flex flex-wrap gap-1.5 sm:gap-2">
-                <button onclick="showSection('nota')" id="nav-nota" class="nav-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-white/10">
+                <button onclick="showSection('nota')" id="nav-nota" class="nav-btn px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-white/10">
                     <i data-lucide="sparkles" class="w-4 h-4 text-emerald-400"></i> Nota Magis
                 </button>
-                <button onclick="showSection('jelajah')" id="nav-jelajah" class="nav-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-white/10">
+                <button onclick="showSection('jelajah')" id="nav-jelajah" class="nav-btn px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-white/10">
                     <i data-lucide="compass" class="w-4 h-4 text-cyan-400"></i> Jelajah Bahasa
                 </button>
-                <button onclick="showSection('game')" id="nav-game" class="nav-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 hover:opacity-90 shadow-lg glow-gold">
+                <button onclick="showSection('game')" id="nav-game" class="nav-btn px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 hover:opacity-90 shadow-lg glow-gold">
                     <i data-lucide="gamepad-2" class="w-4 h-4"></i> Zon JeBaT 🎮
                 </button>
-                <button onclick="showSection('kuiz')" id="nav-kuiz" class="nav-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-white/10">
+                <!-- NAWAR BAHARU: ZON MURID -->
+                <button onclick="showSection('zon-murid')" id="nav-zon-murid" class="nav-btn px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:opacity-90 shadow-lg glow-cyan">
+                    <i data-lucide="graduation-cap" class="w-4 h-4"></i> Zon Murid 🚀
+                </button>
+                <button onclick="showSection('kuiz')" id="nav-kuiz" class="nav-btn px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-white/10">
                     <i data-lucide="award" class="w-4 h-4 text-purple-400"></i> Uji Minda
                 </button>
-                <button onclick="showSection('pelawat')" id="nav-pelawat" class="nav-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 hover:bg-emerald-900/50">
+                <button onclick="showSection('pelawat')" id="nav-pelawat" class="nav-btn px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 hover:bg-emerald-900/50">
                     <i data-lucide="message-square" class="w-4 h-4 text-emerald-400"></i> Zon Pelawat 📜
                 </button>
             </nav>
@@ -350,8 +352,8 @@
     <main class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full relative z-10">
 
         <!-- BAHAGIAN UTAMA -->
-        <section id="sec-utama" class="tab-content text-center py-8">
-            <div class="glass-card rounded-3xl p-8 sm:p-12 max-w-4xl mx-auto relative overflow-hidden border border-emerald-500/30 glow-emerald">
+        <section id="sec-utama" class="tab-content text-center py-6">
+            <div class="glass-card rounded-3xl p-6 sm:p-10 max-w-5xl mx-auto relative overflow-hidden border border-emerald-500/30 glow-emerald">
                 <div class="absolute -top-10 -right-10 w-40 h-40 bg-amber-500/10 rounded-full blur-2xl"></div>
 
                 <div class="inline-flex p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-3xl text-5xl mb-6 shadow-inner text-emerald-400 animate-pulse">
@@ -362,36 +364,192 @@
                     Selamat Datang ke Alam JEBAT!
                 </h2>
                 
-                <p class="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed font-normal">
-                    Kembara menerokai khazanah indah Bahasa Melayu berasaskan DSKP KSSR & Kamus Dewan. Pelajari <span class="text-amber-300 font-semibold">Penjodoh Bilangan</span> secara interaktif dalam suasana fantasi yang memukau.
+                <p class="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto mb-8 leading-relaxed font-normal">
+                    Kembara menerokai khazanah indah Bahasa Melayu berasaskan DSKP KSSR & Kamus Dewan. Pelajari <span class="text-amber-300 font-semibold">Penjodoh Bilangan</span> dan terokai portal interaktif dalam suasana fantasi yang memukau.
                 </p>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <!-- GRID 6 KOTAK (TERMASUK ZON MURID) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <button onclick="showSection('nota')" class="p-5 glass-card rounded-2xl hover:border-emerald-500/50 transition-all text-left hover:-translate-y-1">
                         <div class="text-3xl mb-2">📚</div>
                         <h3 class="font-bold text-emerald-300 text-sm">1. Nota Magis</h3>
-                        <p class="text-[11px] text-slate-400 mt-1">Himpunan ilmu penjodoh bilangan.</p>
+                        <p class="text-[11px] text-slate-400 mt-1">Himpunan ilmu penjodoh bilangan DSKP.</p>
                     </button>
                     <button onclick="showSection('jelajah')" class="p-5 glass-card rounded-2xl hover:border-cyan-500/50 transition-all text-left hover:-translate-y-1">
                         <div class="text-3xl mb-2">🔍</div>
                         <h3 class="font-bold text-cyan-300 text-sm">2. Jelajah Bahasa</h3>
-                        <p class="text-[11px] text-slate-400 mt-1">Interaksi emoji & ayat contoh DSKP.</p>
+                        <p class="text-[11px] text-slate-400 mt-1">Interaksi emoji & ayat contoh interaktif.</p>
                     </button>
                     <button onclick="showSection('game')" class="p-5 bg-gradient-to-b from-amber-500/20 to-amber-900/30 border border-amber-500/40 rounded-2xl transition-all text-left hover:-translate-y-1">
                         <div class="text-3xl mb-2">🍄</div>
                         <h3 class="font-bold text-amber-300 text-sm">3. Zon JeBaT</h3>
                         <p class="text-[11px] text-amber-200/70 mt-1">Kembara Mario Fantasi & Penilaian Bintang.</p>
                     </button>
+                    <!-- KAD BAHARU: ZON MURID -->
+                    <button onclick="showSection('zon-murid')" class="p-5 bg-gradient-to-b from-cyan-500/20 to-blue-900/30 border border-cyan-500/50 rounded-2xl transition-all text-left hover:-translate-y-1 glow-cyan">
+                        <div class="text-3xl mb-2">🎓</div>
+                        <h3 class="font-bold text-cyan-300 text-sm">4. Zon Murid ✨</h3>
+                        <p class="text-[11px] text-cyan-200/80 mt-1">Portal Pustaka, AR, Kad Imbas & Permainan 3D.</p>
+                    </button>
                     <button onclick="showSection('kuiz')" class="p-5 glass-card rounded-2xl hover:border-purple-500/50 transition-all text-left hover:-translate-y-1">
                         <div class="text-3xl mb-2">🏆</div>
-                        <h3 class="font-bold text-purple-300 text-sm">4. Uji Minda</h3>
-                        <p class="text-[11px] text-slate-400 mt-1">Kuiz 3 Aras & Sijil Kehormatan.</p>
+                        <h3 class="font-bold text-purple-300 text-sm">5. Uji Minda</h3>
+                        <p class="text-[11px] text-slate-400 mt-1">Kuiz 3 Aras & Sijil Kehormatan digital.</p>
                     </button>
                     <button onclick="showSection('pelawat')" class="p-5 glass-card rounded-2xl border-emerald-500/40 bg-emerald-950/20 hover:border-emerald-400 transition-all text-left hover:-translate-y-1">
                         <div class="text-3xl mb-2">📜</div>
-                        <h3 class="font-bold text-emerald-400 text-sm">5. Zon Pelawat</h3>
+                        <h3 class="font-bold text-emerald-400 text-sm">6. Zon Pelawat</h3>
                         <p class="text-[11px] text-slate-400 mt-1">Tinggalkan nama & komen di Sheet Awan.</p>
                     </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- BAHAGIAN BAHARU: ZON MURID -->
+        <section id="sec-zon-murid" class="tab-content hidden">
+            <div class="glass-card rounded-3xl p-6 sm:p-8 border border-cyan-500/40 glow-cyan">
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-8 border-b border-white/10 pb-5">
+                    <div class="flex items-center gap-3">
+                        <div class="p-3.5 bg-gradient-to-br from-cyan-500/30 to-blue-600/30 border border-cyan-400/40 rounded-2xl text-cyan-300 shadow-lg">
+                            <i data-lucide="graduation-cap" class="w-8 h-8"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-200 to-indigo-300 font-cinzel">
+                                ZON MURID JEBAT
+                            </h2>
+                            <p class="text-xs sm:text-sm text-slate-300 mt-0.5">
+                                Pusat Kembara Digital, Kad Imbas, Permainan AR & Dunia 3D Bahasa Melayu
+                            </p>
+                        </div>
+                    </div>
+                    <span class="px-3.5 py-1.5 bg-cyan-950/80 border border-cyan-500/40 rounded-full text-cyan-300 text-xs font-semibold flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span> 5 Portal Interaktif Sedia
+                    </span>
+                </div>
+
+                <!-- Kad Pautan Berwarna-warni -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                    <!-- 1. PUSTAKA JEBAT -->
+                    <div class="glass-card rounded-2xl p-6 border border-emerald-500/30 bg-gradient-to-b from-emerald-950/30 to-slate-900/80 hover:border-emerald-400 transition-all flex flex-col justify-between group hover:-translate-y-1 shadow-xl">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-2xl">
+                                    📖
+                                </div>
+                                <span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                                    Nota Kad Imbas
+                                </span>
+                            </div>
+                            <h3 class="text-xl font-black text-emerald-300 font-cinzel mb-2 group-hover:text-emerald-200 transition">
+                                PUSTAKA JEBAT
+                            </h3>
+                            <p class="text-xs text-slate-300 leading-relaxed mb-6">
+                                Terokai koleksi nota ringkas, kad imbas digital dan panduan grafik interaktif bagi memantapkan pemahaman Penjodoh Bilangan.
+                            </p>
+                        </div>
+                        <a href="https://ridzrashid.github.io/nota-kadimbas/" target="_blank" rel="noopener noreferrer" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-lg">
+                            <span>Buka Pustaka Jebat</span>
+                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+
+                    <!-- 2. JELAJAH AR JEBAT -->
+                    <div class="glass-card rounded-2xl p-6 border border-cyan-500/30 bg-gradient-to-b from-cyan-950/30 to-slate-900/80 hover:border-cyan-400 transition-all flex flex-col justify-between group hover:-translate-y-1 shadow-xl">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="w-12 h-12 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-2xl">
+                                    🥽
+                                </div>
+                                <span class="text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                                    Augmented Reality
+                                </span>
+                            </div>
+                            <h3 class="text-xl font-black text-cyan-300 font-cinzel mb-2 group-hover:text-cyan-200 transition">
+                                JELAJAH AR JEBAT
+                            </h3>
+                            <p class="text-xs text-slate-300 leading-relaxed mb-6">
+                                Pengalaman pembelajaran berasaskan Realiti Terimbuh (AR) yang membawa watak dan objek bahasa secara visual interaktif.
+                            </p>
+                        </div>
+                        <a href="https://ridzrashid.github.io/game-AR-Jebat/" target="_blank" rel="noopener noreferrer" class="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-lg">
+                            <span>Main Jelajah AR Jebat</span>
+                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+
+                    <!-- 3. UJI IQ KAD IMBAS JEBAT -->
+                    <div class="glass-card rounded-2xl p-6 border border-amber-500/30 bg-gradient-to-b from-amber-950/30 to-slate-900/80 hover:border-amber-400 transition-all flex flex-col justify-between group hover:-translate-y-1 shadow-xl">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-2xl">
+                                    🧠
+                                </div>
+                                <span class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                                    Permainan Memori
+                                </span>
+                            </div>
+                            <h3 class="text-xl font-black text-amber-300 font-cinzel mb-2 group-hover:text-amber-200 transition">
+                                UJI IQ KAD IMBAS
+                            </h3>
+                            <p class="text-xs text-slate-300 leading-relaxed mb-6">
+                                Uji kepantasan minda dan daya ingatan anda melalui cabaran padanan kad imbas penjodoh bilangan yang menyeronokkan!
+                            </p>
+                        </div>
+                        <a href="https://ridzrashid.github.io/game-kadimbas-jebat/" target="_blank" rel="noopener noreferrer" class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-lg">
+                            <span>Mula Cabaran Kad IQ</span>
+                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+
+                    <!-- 4. JELAJAH JEBAT -->
+                    <div class="glass-card rounded-2xl p-6 border border-purple-500/30 bg-gradient-to-b from-purple-950/30 to-slate-900/80 hover:border-purple-400 transition-all flex flex-col justify-between group hover:-translate-y-1 shadow-xl">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-2xl">
+                                    🗺️
+                                </div>
+                                <span class="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                                    Kembara 2D
+                                </span>
+                            </div>
+                            <h3 class="text-xl font-black text-purple-300 font-cinzel mb-2 group-hover:text-purple-200 transition">
+                                JELAJAH JEBAT
+                            </h3>
+                            <p class="text-xs text-slate-300 leading-relaxed mb-6">
+                                Kembara interaktif menelusuri pelbagai laluan dan cabaran bahasa dalam dunia permainan 2D interaktif.
+                            </p>
+                        </div>
+                        <a href="https://ridzrashid.github.io/game-jelajahjebat/" target="_blank" rel="noopener noreferrer" class="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-lg">
+                            <span>Mula Jelajah Jebat</span>
+                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+
+                    <!-- 5. DUNIA JEBAT 3D -->
+                    <div class="glass-card rounded-2xl p-6 border border-rose-500/30 bg-gradient-to-b from-rose-950/30 to-slate-900/80 hover:border-rose-400 transition-all flex flex-col justify-between group hover:-translate-y-1 shadow-xl md:col-span-2 lg:col-span-1">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="w-12 h-12 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-2xl">
+                                    🌐
+                                </div>
+                                <span class="text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                                    Grafik 3D
+                                </span>
+                            </div>
+                            <h3 class="text-xl font-black text-rose-300 font-cinzel mb-2 group-hover:text-rose-200 transition">
+                                DUNIA JEBAT 3D
+                            </h3>
+                            <p class="text-xs text-slate-300 leading-relaxed mb-6">
+                                Alami pengembaraan simulasi 3D penuh aksi yang memukau sambil menyelesaikan misi-misi penjodoh bilangan!
+                            </p>
+                        </div>
+                        <a href="https://ridzrashid.github.io/game-duniajebat3d/" target="_blank" rel="noopener noreferrer" class="w-full py-3 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-lg">
+                            <span>Masuk Dunia Jebat 3D</span>
+                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+
                 </div>
             </div>
         </section>
@@ -715,13 +873,11 @@
                             <p class="text-xs text-slate-400">Tinggalkan jejak & ucapan anda yang tersimpan dalam Google Sheet Rasmi!</p>
                         </div>
                     </div>
-                    <!-- Pautan Terus Google Sheet -->
                     <a href="https://docs.google.com/spreadsheets/d/1WMf65_MqQqEiAsRG6-mVP9vW39YDHaxA4Z6aBkfrSJA/edit?usp=sharing" target="_blank" class="px-4 py-2 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-bold flex items-center gap-2 transition shadow">
                         <span>📊</span> Buka Google Sheet Rasmi <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
                     </a>
                 </div>
 
-                <!-- KOTAK SYNC GOOGLE SHEET SETUP -->
                 <div class="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-4 mb-6">
                     <div class="flex justify-between items-center cursor-pointer flex-wrap gap-2" onclick="document.getElementById('setup-sheet-box').classList.toggle('hidden')">
                         <div class="flex items-center gap-2 text-xs font-bold text-emerald-300">
@@ -829,298 +985,169 @@
 
     <!-- LOGIK JAVASCRIPT APLIKASI -->
     <script>
-        // SINTESIS KESAN BUNYI PERMAINAN (Web Audio API)
-        class SoundEffects {
-            constructor() {
-                this.ctx = null;
-                this.enabled = true;
-            }
+        // --- DATA PENJODOH BILANGAN DSKP ---
+        const NOTA_DATA = [
+            { word: "batang", emoji: "✏️", definition: "Benda-benda yang panjang, lurus, dan keras.", examples: "pensel, pen, pokok, sungai, tiang, lilin, gigi" },
+            { word: "buah", emoji: "🚗", definition: "Benda yang besar, padu, tiada bentuk tertentu atau kenderaan.", examples: "kereta, rumah, beg, pulau, bandar, novel, meja" },
+            { word: "biji", emoji: "🍎", definition: "Benda yang kecil, bulat atau separuh bulat.", examples: "epal, guli, telur, cawan, durian, bola, butang" },
+            { word: "ekor", emoji: "🐈", definition: "Semua jenis haiwan atau binatang.", examples: "kucing, burung, ikan, gajah, harimau, rama-rama" },
+            { word: "orang", emoji: "👨‍🏫", definition: "Semua jenis manusia mengikut jawatan atau peranan.", examples: "guru, polis, doktor, murid, menteri, askar" },
+            { word: "helai", emoji: "📄", definition: "Benda-benda yang nipis, lebar, atau lembut.", examples: "kertas, baju, daun, tuala, rambut, kain" },
+            { word: "keping", emoji: "🍞", definition: "Benda-benda yang nipis, rata, dan agak keras.", examples: "roti, biskut, gambar, papan, kad, syiling" },
+            { word: "bilah", emoji: "🔪", definition: "Benda-benda yang tajam dan runcing.", examples: "pisau, gunting, pedang, keris, gergaji, jarum" },
+            { word: "bentuk", emoji: "💍", definition: "Benda-benda kecil yang melengkung atau bergelung.", examples: "cincin, mata kail, subang, rantai" },
+            { word: "kaki", emoji: "☂️", definition: "Benda-benda yang bertangkai atau berkaki.", examples: "payung, cendawan" },
+            { word: "rumpun", emoji: "🌾", definition: "Tumbuhan yang tumbuh berkelompok atau berumpun.", examples: "buluh, serai, tebu, lalang" },
+            { word: "pasang", emoji: "👟", definition: "Benda atau manusia yang berpasangan (dua-dua).", examples: "kasut, anting-anting, pengantin, merpati" },
+            { word: "kuntum", emoji: "🌹", definition: "Bunga-bungaan.", examples: "bunga mawar, bunga raya, bunga orkid" },
+            { word: "pintu", emoji: "🚪", definition: "Deretan rumah atau kedai.", examples: "rumah teres, kedai, bilik" },
+            { word: "naskhah", emoji: "📰", definition: "Bahan bacaan bersurat atau bercetak.", examples: "surat khabar, majalah, buku, dokumen" }
+        ];
 
-            init() {
-                if (!this.ctx) {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    if (AudioContext) this.ctx = new AudioContext();
-                }
-                if (this.ctx && this.ctx.state === 'suspended') {
-                    this.ctx.resume();
-                }
-            }
+        // --- SISTEM SUARA PERMAINAN (WEB AUDIO API) ---
+        let soundEnabled = true;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-            playJump() {
-                if (!this.enabled) return;
-                this.init();
-                if (!this.ctx) return;
-                try {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                const ctx = audioCtx;
+                if (ctx.state === 'suspended') ctx.resume();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (type === 'jump') {
+                    osc.frequency.setValueAtTime(150, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.15);
+                } else if (type === 'coin') {
                     osc.type = 'sine';
-                    osc.frequency.setValueAtTime(150, this.ctx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.15);
-                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
+                    osc.frequency.setValueAtTime(987.77, ctx.currentTime); // B5
+                    osc.frequency.setValueAtTime(1318.51, ctx.currentTime + 0.08); // E6
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.25);
                     osc.start();
-                    osc.stop(this.ctx.currentTime + 0.15);
-                } catch(e) {}
-            }
-
-            playBlock() {
-                if (!this.enabled) return;
-                this.init();
-                if (!this.ctx) return;
-                try {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
+                    osc.stop(ctx.currentTime + 0.25);
+                } else if (type === 'correct') {
                     osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(987, this.ctx.currentTime); // B5
-                    osc.frequency.setValueAtTime(1318, this.ctx.currentTime + 0.08); // E6
-                    gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
+                    osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+                    osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+                    osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.35);
                     osc.start();
-                    osc.stop(this.ctx.currentTime + 0.3);
-                } catch(e) {}
-            }
-
-            playCorrect() {
-                if (!this.enabled) return;
-                this.init();
-                if (!this.ctx) return;
-                try {
-                    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
-                    notes.forEach((freq, idx) => {
-                        const osc = this.ctx.createOscillator();
-                        const gain = this.ctx.createGain();
-                        osc.type = 'sine';
-                        osc.frequency.value = freq;
-                        gain.gain.setValueAtTime(0.2, this.ctx.currentTime + idx * 0.08);
-                        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.08 + 0.2);
-                        osc.connect(gain);
-                        gain.connect(this.ctx.destination);
-                        osc.start(this.ctx.currentTime + idx * 0.08);
-                        osc.stop(this.ctx.currentTime + idx * 0.08 + 0.2);
-                    });
-                } catch(e) {}
-            }
-
-            playWrong() {
-                if (!this.enabled) return;
-                this.init();
-                if (!this.ctx) return;
-                try {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
+                    osc.stop(ctx.currentTime + 0.35);
+                } else if (type === 'wrong') {
                     osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(300, this.ctx.currentTime);
-                    osc.frequency.linearRampToValueAtTime(100, this.ctx.currentTime + 0.3);
-                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
+                    osc.frequency.setValueAtTime(220, ctx.currentTime);
+                    osc.frequency.setValueAtTime(150, ctx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.3);
                     osc.start();
-                    osc.stop(this.ctx.currentTime + 0.3);
-                } catch(e) {}
-            }
-
-            playWin() {
-                if (!this.enabled) return;
-                this.init();
-                if (!this.ctx) return;
-                try {
-                    const tune = [
-                        { f: 523.25, d: 0.15 }, { f: 659.25, d: 0.15 }, 
-                        { f: 783.99, d: 0.15 }, { f: 1046.50, d: 0.4 }
-                    ];
-                    let now = this.ctx.currentTime;
-                    tune.forEach(note => {
-                        const osc = this.ctx.createOscillator();
-                        const gain = this.ctx.createGain();
-                        osc.type = 'triangle';
-                        osc.frequency.value = note.f;
-                        gain.gain.setValueAtTime(0.3, now);
-                        gain.gain.exponentialRampToValueAtTime(0.01, now + note.d);
-                        osc.connect(gain);
-                        gain.connect(this.ctx.destination);
-                        osc.start(now);
-                        osc.stop(now + note.d);
-                        now += note.d;
-                    });
-                } catch(e) {}
-            }
-
-            playGameOver() {
-                if (!this.enabled) return;
-                this.init();
-                if (!this.ctx) return;
-                try {
-                    const notes = [400, 350, 300, 250];
-                    let now = this.ctx.currentTime;
-                    notes.forEach((f, i) => {
-                        const osc = this.ctx.createOscillator();
-                        const gain = this.ctx.createGain();
-                        osc.type = 'sawtooth';
-                        osc.frequency.value = f;
-                        gain.gain.setValueAtTime(0.2, now + i * 0.15);
-                        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.2);
-                        osc.connect(gain);
-                        gain.connect(this.ctx.destination);
-                        osc.start(now + i * 0.15);
-                        osc.stop(now + i * 0.15 + 0.2);
-                    });
-                } catch(e) {}
-            }
+                    osc.stop(ctx.currentTime + 0.3);
+                }
+            } catch(e) {}
         }
 
-        const sfx = new SoundEffects();
-
         function toggleSound() {
-            sfx.enabled = !sfx.enabled;
-            const btn = document.getElementById('btn-sound-toggle');
+            soundEnabled = !soundEnabled;
             const icon = document.getElementById('sound-icon');
-            if (sfx.enabled) {
+            const btn = document.getElementById('btn-sound-toggle');
+            if (soundEnabled) {
+                icon.innerText = "🔊";
                 btn.innerHTML = `<span id="sound-icon">🔊</span> Bunyi: ON`;
-                sfx.playJump();
             } else {
+                icon.innerText = "🔇";
                 btn.innerHTML = `<span id="sound-icon">🔇</span> Bunyi: OFF`;
             }
         }
 
-        // Data Penjodoh Bilangan DSKP
-        const dataPenjodoh = [
-            { nama: "Batang", emoji: "✏️", maksud: "Benda yang panjang, lurus, atau keras.", contoh: "pensel, pokok, sungai, lilin, gigi", ayat: "Ahmad membeli sebatang pensel baharu di kedai buku.", aras: "Tahun 1-6" },
-            { nama: "Biji", emoji: "🍎", maksud: "Benda-benda yang bulat atau kecil.", contoh: "epal, bola, telur, guli, cawan", ayat: "Ibu meletakkan sebiji telur di dalam mangkuk.", aras: "Tahun 1-6" },
-            { nama: "Ekor", emoji: "🐱", maksud: "Digunakan khusus untuk haiwan.", contoh: "kucing, burung, ikan, lembu", ayat: "Dua ekor burung berkicau di dahan pokok.", aras: "Tahun 1-6" },
-            { nama: "Keping", emoji: "🍞", maksud: "Benda yang rata, nipis, dan lebar.", contoh: "roti, biskut, kertas, papan", ayat: "Siti makan sekeping roti bakar.", aras: "Tahun 1-6" },
-            { nama: "Orang", emoji: "👨‍🏫", maksud: "Digunakan khusus untuk manusia.", contoh: "guru, polis, doktor, murid", ayat: "Seorang doktor sedang merawat pesakit.", aras: "Tahun 1-6" },
-            { nama: "Pucuk", emoji: "✉️", maksud: "Benda halus, tajam, surat atau senjata.", contoh: "surat, jarum, pistol, meriam", ayat: "Posmen menyerahkan sepucuk surat rasmi.", aras: "Tahun 3-6" },
-            { nama: "Bentuk", emoji: "💍", maksud: "Benda kecil yang melengkung atau bulat.", contoh: "cincin, mata kail, subang", ayat: "Kakak memakai sebentuk cincin emas.", aras: "Tahun 3-6" },
-            { nama: "Laras", emoji: "🔫", maksud: "Senjata api dengan tiub panjang.", contoh: "senapang, meriam", ayat: "Polis memegang selaras senapang.", aras: "Tahun 4-6" },
-            { nama: "Naskhah", emoji: "📰", maksud: "Bahan bacaan bertulis atau bercetak.", contoh: "surat khabar, majalah, buku", ayat: "Ayah membaca senaskhah surat khabar.", aras: "Tahun 3-6" },
-            { nama: "Urat", emoji: "🧵", maksud: "Benda yang halus dan panjang.", contoh: "benang, dawai, rambut", ayat: "Nenek memasukkan seurat benang ke jarum.", aras: "Tahun 4-6" },
-            { nama: "Bilah", emoji: "🔪", maksud: "Benda tajam atau runcing.", contoh: "pisau, gunting, keris, pedang", ayat: "Abang memotong buah guna sebilah pisau.", aras: "Tahun 1-6" },
-            { nama: "Utas", emoji: "📿", maksud: "Benda yang panjang dan berangkai.", contoh: "rantai, tali", ayat: "Ibu memakai seutus rantai mutiara.", aras: "Tahun 4-6" }
-        ];
-
-        const quizData = {
-            mudah: [
-                { q: "Ali membeli dua ___ pensel di koperasi.", options: ["batang", "biji", "ekor", "keping"], ans: 0 },
-                { q: "Adik makan se___ epal yang manis.", options: ["ekor", "biji", "batang", "pucuk"], ans: 1 },
-                { q: "Tiga ___ kucing sedang tidur.", options: ["orang", "biji", "ekor", "bentuk"], ans: 2 },
-                { q: "Se___ guru sedang mengajar.", options: ["orang", "ekor", "bilah", "laras"], ans: 0 },
-                { q: "Ibu meletakkan se___ roti bakar.", options: ["batang", "keping", "biji", "pucuk"], ans: 1 }
-            ],
-            sederhana: [
-                { q: "Posmen menyampaikan se___ surat.", options: ["batang", "pucuk", "keping", "naskhah"], ans: 1 },
-                { q: "Ayah membaca se___ majalah.", options: ["pucuk", "naskhah", "lembar", "keping"], ans: 1 },
-                { q: "Abang mengasah se___ pisau.", options: ["bilah", "batang", "bentuk", "laras"], ans: 0 },
-                { q: "Kakak memakai se___ cincin perak.", options: ["biji", "bentuk", "pucuk", "keping"], ans: 1 },
-                { q: "Nelayan membawa se___ mata kail.", options: ["bilah", "bentuk", "batang", "pucuk"], ans: 1 }
-            ],
-            sukar: [
-                { q: "Polis menjumpai dua ___ senapang patah.", options: ["batang", "laras", "pucuk", "bilah"], ans: 1 },
-                { q: "Nenek memasukkan se___ benang emas.", options: ["utas", "urat", "pucuk", "keping"], ans: 1 },
-                { q: "Pahlawan menghunus se___ keris pusaka.", options: ["bilah", "laras", "pucuk", "batang"], ans: 0 },
-                { q: "Ibu memakai se___ rantai leher.", options: ["utas", "urat", "gelung", "pucuk"], ans: 0 },
-                { q: "Penyair mencipta se___ puisi indah.", options: ["pucuk", "keping", "seuntai", "naskhah"], ans: 2 }
-            ]
-        };
-
-        // Tukar Tab Navigasi
+        // --- TUKAR SEKSYEN (NAVIGATION) ---
         function showSection(sectionId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            const targetSection = document.getElementById(`sec-${sectionId}`);
+            document.querySelectorAll('.tab-content').forEach(sec => sec.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-white/20', 'text-white');
+            });
+
+            const targetSection = document.getElementById('sec-' + sectionId);
             if (targetSection) targetSection.classList.remove('hidden');
+
+            const activeNav = document.getElementById('nav-' + sectionId);
+            if (activeNav) activeNav.classList.add('bg-white/20', 'text-white');
+
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
-            if(sectionId === 'game') initGame();
+            if (sectionId === 'game' && typeof initGame === 'function') {
+                setTimeout(initGame, 100);
+            }
+            if (sectionId === 'pelawat' && window.fetchGoogleSheetData) {
+                window.fetchGoogleSheetData();
+            }
         }
 
-        function showModalAlert(text) {
-            document.getElementById('modal-alert-text').innerText = text;
-            document.getElementById('modal-alert').classList.remove('hidden');
-        }
-        window.showModalAlert = showModalAlert;
-
-        function closeModalAlert() {
-            document.getElementById('modal-alert').classList.add('hidden');
-        }
-
-        function closeModal(id) {
-            const modalEl = document.getElementById(id);
-            if (modalEl) modalEl.classList.add('hidden');
-        }
-
-        // Muat Nota Ringkas
-        function loadNota() {
+        // --- NOTA MAGIS & JELAJAH BAHASA ---
+        function renderNota() {
             const container = document.getElementById('nota-container');
             if (!container) return;
-            container.innerHTML = '';
-            dataPenjodoh.forEach(item => {
-                const card = `
-                    <div class="glass-card rounded-2xl p-5 border border-white/10 hover:border-emerald-500/40 transition flex flex-col justify-between">
-                        <div>
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-3xl">${item.emoji}</span>
-                                <span class="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">${item.aras}</span>
-                            </div>
-                            <h3 class="text-base font-bold text-white mb-1">${item.nama}</h3>
-                            <p class="text-xs text-slate-400 mb-3">${item.maksud}</p>
-                        </div>
-                        <div class="bg-slate-900/60 p-3 rounded-xl border border-white/5">
-                            <p class="text-[11px] text-slate-500 font-semibold mb-0.5">Contoh Benda:</p>
-                            <p class="text-xs font-semibold text-emerald-400">${item.contoh}</p>
-                        </div>
+            container.innerHTML = NOTA_DATA.map(item => `
+                <div class="glass-card rounded-2xl p-5 border border-white/10 hover:border-emerald-500/50 transition-all hover:-translate-y-1">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-3xl">${item.emoji}</span>
+                        <span class="text-xs font-bold px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full border border-emerald-500/30 uppercase">
+                            se${item.word}
+                        </span>
                     </div>
-                `;
-                container.innerHTML += card;
-            });
+                    <h3 class="text-lg font-bold text-white capitalize mb-1">${item.word}</h3>
+                    <p class="text-xs text-slate-300 mb-3">${item.definition}</p>
+                    <div class="text-[11px] text-emerald-400/90 font-medium bg-slate-900/60 p-2.5 rounded-xl border border-white/5">
+                        <span class="font-bold text-amber-300">Contoh:</span> ${item.examples}
+                    </div>
+                </div>
+            `).join('');
         }
 
-        // Jelajah Bahasa
-        let selectedPenjodoh = dataPenjodoh[0];
+        let selectedJelajahWord = NOTA_DATA[0].word;
 
-        function loadJelajahButtons() {
-            const container = document.getElementById('jelajah-buttons');
-            if (!container) return;
-            container.innerHTML = '';
-            dataPenjodoh.forEach(item => {
-                const isSelected = item.nama === selectedPenjodoh.nama;
-                const btn = document.createElement('button');
-                btn.className = `px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${isSelected ? 'bg-cyan-500 text-slate-950 shadow-lg glow-cyan' : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-white/5'}`;
-                btn.innerHTML = `<span>${item.emoji}</span> ${item.nama}`;
-                btn.onclick = () => {
-                    selectedPenjodoh = item;
-                    loadJelajahButtons();
-                    renderJelajahDisplay();
-                };
-                container.appendChild(btn);
-            });
+        function renderJelajahButtons() {
+            const btnContainer = document.getElementById('jelajah-buttons');
+            if (!btnContainer) return;
+            btnContainer.innerHTML = NOTA_DATA.map(item => `
+                <button onclick="selectJelajah('${item.word}')" class="jelajah-btn-item px-3.5 py-2 rounded-xl text-xs font-bold transition ${selectedJelajahWord === item.word ? 'bg-cyan-500 text-slate-950 shadow-lg glow-cyan' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'}">
+                    ${item.emoji} ${item.word}
+                </button>
+            `).join('');
+            renderJelajahDisplay();
+        }
+
+        function selectJelajah(word) {
+            selectedJelajahWord = word;
+            renderJelajahButtons();
         }
 
         function renderJelajahDisplay() {
             const display = document.getElementById('jelajah-display');
+            const data = NOTA_DATA.find(d => d.word === selectedJelajahWord) || NOTA_DATA[0];
             if (!display) return;
+
             display.innerHTML = `
-                <div class="flex flex-col md:flex-row gap-6 items-center">
-                    <div class="bg-slate-900/80 p-6 rounded-2xl border border-cyan-500/30 text-center min-w-[180px]">
-                        <div class="text-5xl mb-2 animate-bounce">${selectedPenjodoh.emoji}</div>
-                        <h3 class="text-2xl font-black text-cyan-300 font-cinzel">${selectedPenjodoh.nama}</h3>
-                        <span class="text-[10px] text-slate-400 block mt-1">${selectedPenjodoh.aras}</span>
+                <div class="flex flex-col md:flex-row items-center gap-6">
+                    <div class="text-7xl p-6 bg-cyan-500/10 border border-cyan-500/30 rounded-3xl animate-bounce">
+                        ${data.emoji}
                     </div>
-                    <div class="flex-grow space-y-3 w-full">
-                        <div class="bg-slate-900/60 p-3.5 rounded-xl border border-white/5">
-                            <h4 class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider mb-0.5">Fungsi & Maksud</h4>
-                            <p class="text-xs sm:text-sm text-slate-200">${selectedPenjodoh.maksud}</p>
+                    <div class="space-y-3 flex-grow text-center md:text-left">
+                        <div class="inline-block px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-xs font-bold border border-cyan-500/30 uppercase">
+                            Penjodoh Bilangan: se${data.word}
                         </div>
-                        <div class="bg-slate-900/60 p-3.5 rounded-xl border border-white/5">
-                            <h4 class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider mb-0.5">Contoh Objek</h4>
-                            <p class="text-xs sm:text-sm font-semibold text-emerald-400">${selectedPenjodoh.contoh}</p>
-                        </div>
-                        <div class="bg-amber-500/10 p-3.5 rounded-xl border border-amber-500/20">
-                            <h4 class="text-[10px] font-bold text-amber-300 uppercase tracking-wider mb-0.5">Contoh Ayat DSKP</h4>
-                            <p class="text-xs sm:text-sm font-bold text-amber-200 italic">"${selectedPenjodoh.ayat}"</p>
+                        <h3 class="text-3xl font-black text-white font-cinzel capitalize">${data.word}</h3>
+                        <p class="text-sm text-slate-200 leading-relaxed">${data.definition}</p>
+                        <div class="p-4 bg-slate-900/80 rounded-2xl border border-white/10 text-xs sm:text-sm text-cyan-200">
+                            <span class="font-bold text-amber-300 block mb-1">📌 Contoh Ayat DSKP:</span>
+                            "Ibu membeli beberapa <b class="text-cyan-300">${data.word}</b> ${data.examples.split(',')[0]} di pasar pagi."
                         </div>
                     </div>
                 </div>
@@ -1129,412 +1156,352 @@
 
         function filterJelajah() {
             const query = document.getElementById('jelajah-search').value.toLowerCase();
-            const filtered = dataPenjodoh.filter(i => i.nama.toLowerCase().includes(query) || i.contoh.toLowerCase().includes(query));
-            if(filtered.length > 0) {
-                selectedPenjodoh = filtered[0];
-                renderJelajahDisplay();
-            }
+            const filtered = NOTA_DATA.filter(item => item.word.includes(query) || item.examples.includes(query));
+            const btnContainer = document.getElementById('jelajah-buttons');
+            btnContainer.innerHTML = filtered.map(item => `
+                <button onclick="selectJelajah('${item.word}')" class="jelajah-btn-item px-3.5 py-2 rounded-xl text-xs font-bold transition ${selectedJelajahWord === item.word ? 'bg-cyan-500 text-slate-950' : 'bg-slate-900 text-slate-300'}">
+                    ${item.emoji} ${item.word}
+                </button>
+            `).join('');
         }
 
-        // Permainan Mario Fantasi
+        // --- LOGIK PERMAINAN MARIO FANTASI (ZON JEBAT) ---
         let canvas, ctx;
-        let mario = { x: 50, y: 300, width: 30, height: 40, vx: 0, vy: 0, grounded: false, speed: 4, jumpPower: -11 };
-        let cameraX = 0;
-        let gravity = 0.5;
-        let score = 0;
-        let lives = 3;
-        let answeredQuestionsCount = 0;
+        let gameRunning = false;
+        let player = { x: 50, y: 300, w: 30, h: 30, vx: 0, vy: 0, grounded: false, lives: 3, score: 0 };
         let blocks = [];
-        let flagpole = { x: 2200, y: 140, width: 20, height: 200, hit: false };
-        let keys = {};
-        let gameLoopId;
-
-        // Koleksi 10 Soalan DSKP Bahasa Melayu
-        const gameQuestions = [
-            { q: "Pilih penjodoh bilangan bagi 'Dua ___ Meriam'.", opts: ["Batang", "Laras", "Pucuk"], ans: 1 },
-            { q: "Kakak membeli tiga ___ cincin emas di kedai.", opts: ["Bentuk", "Biji", "Utas"], ans: 0 },
-            { q: "Posmen menghantar dua ___ surat rasmi.", opts: ["Keping", "Pucuk", "Batang"], ans: 1 },
-            { q: "Adik menjumpai se___ benang di lantai.", opts: ["Utas", "Urat", "Bilah"], ans: 1 },
-            { q: "Pak Cik Hassan menebang tiga ___ pokok kelapa.", opts: ["Batang", "Pucuk", "Bilah"], ans: 0 },
-            { q: "Ibu menghidangkan lima ___ biskut coklat.", opts: ["Keping", "Bentuk", "Naskhah"], ans: 0 },
-            { q: "Pemburu itu membawa selaras senapang dan se___ pisau.", opts: ["Bilah", "Batang", "Pucuk"], ans: 0 },
-            { q: "Nenek memakai se___ rantai mutiara yang indah.", opts: ["Utas", "Urat", "Laras"], ans: 0 },
-            { q: "Ibu membeli tiga ___ epal merah di pasar.", opts: ["Biji", "Ekor", "Bentuk"], ans: 0 },
-            { q: "Pengarang itu menulis senaskhah ___ baharu.", opts: ["Buku", "Rumah", "Cincin"], ans: 0 }
+        let questions = [
+            { q: "Pak Samad memotong kayu guna se_____ gergaji.", options: ["bilah", "buah", "batang"], ans: 0 },
+            { q: "Adik makan dua _____ roti bakar.", options: ["keping", "biji", "helai"], ans: 0 },
+            { q: "Abang menghadiahkan se_____ cincin emas kepada ibu.", options: ["bentuk", "pasang", "keping"], ans: 0 },
+            { q: "Cikgu Mei membimbing se_____ murid di dalam kelas.", options: ["orang", "ekor", "buah"], ans: 0 },
+            { q: "Ibu membeli dua _____ payung untuk cuaca hujan.", options: ["kaki", "batang", "bilah"], ans: 0 },
+            { q: "Kelihatan se_____ burung terbang tinggi di udara.", options: ["ekor", "buah", "biji"], ans: 0 },
+            { q: "Siti memakai se_____ kasut baharu ke sekolah.", options: ["pasang", "helai", "bentuk"], ans: 0 },
+            { q: "Nenek menanam se_____ serai di halaman rumah.", options: ["rumpun", "kuntum", "batang"], ans: 0 },
+            { q: "Pengantin wanita memegang se_____ bunga mawar.", options: ["kuntum", "helai", "biji"], ans: 0 },
+            { q: "Bapa membaca se_____ majalah di ruang tamu.", options: ["naskhah", "pintu", "keping"], ans: 0 }
         ];
+        let currentQIndex = 0;
+        let keys = {};
 
         function initGame() {
             canvas = document.getElementById('marioCanvas');
-            if(!canvas) return;
+            if (!canvas) return;
             ctx = canvas.getContext('2d');
 
-            mario.x = 50;
-            mario.y = 300;
-            mario.vx = 0;
-            mario.vy = 0;
-            cameraX = 0;
-            score = 0;
-            lives = 3;
-            answeredQuestionsCount = 0;
+            player = { x: 50, y: 300, w: 30, h: 30, vx: 0, vy: 0, grounded: false, lives: 3, score: 0 };
+            currentQIndex = 0;
+            updateGameUI();
 
-            document.getElementById('game-score').innerText = score;
-            document.getElementById('game-lives').innerText = '❤️ ' + lives;
-            document.getElementById('game-progress').innerText = `0 / ${gameQuestions.length}`;
-
-            // Susun 10 Blok Soalan sepanjang peta
+            // Sediakan Blok Magis [?]
             blocks = [];
-            const blockSpacing = 190;
-            for(let i = 0; i < gameQuestions.length; i++) {
+            for (let i = 0; i < 10; i++) {
                 blocks.push({
-                    x: 200 + (i * blockSpacing),
-                    y: (i % 2 === 0) ? 230 : 190,
-                    width: 38,
-                    height: 38,
+                    x: 180 + i * 140,
+                    y: 220 - (i % 2) * 40,
+                    w: 35,
+                    h: 35,
                     hit: false,
                     questionIndex: i
                 });
             }
 
-            flagpole.x = 200 + (gameQuestions.length * blockSpacing) + 150;
-            flagpole.hit = false;
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+            window.addEventListener('keydown', handleKeyDown);
+            window.addEventListener('keyup', handleKeyUp);
 
-            window.onkeydown = (e) => {
-                keys[e.code] = true;
-                if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) {
-                    const secGame = document.getElementById('sec-game');
-                    if (secGame && !secGame.classList.contains('hidden')) {
-                        e.preventDefault();
-                    }
-                }
-            };
-            window.onkeyup = (e) => keys[e.code] = false;
+            setupTouchControls();
 
-            setupMobileControls();
-
-            if(gameLoopId) cancelAnimationFrame(gameLoopId);
-            gameUpdate();
+            gameRunning = true;
+            requestAnimationFrame(gameLoop);
         }
 
-        function setupMobileControls() {
+        function handleKeyDown(e) { keys[e.code] = true; }
+        function handleKeyUp(e) { keys[e.code] = false; }
+
+        function setupTouchControls() {
             const btnLeft = document.getElementById('btn-left');
             const btnRight = document.getElementById('btn-right');
             const btnJump = document.getElementById('btn-jump');
 
-            if (!btnLeft) return;
-
-            btnLeft.ontouchstart = (e) => { e.preventDefault(); keys['ArrowLeft'] = true; };
-            btnLeft.ontouchend = () => keys['ArrowLeft'] = false;
-
-            btnRight.ontouchstart = (e) => { e.preventDefault(); keys['ArrowRight'] = true; };
-            btnRight.ontouchend = () => keys['ArrowRight'] = false;
-
-            btnJump.ontouchstart = (e) => { 
-                e.preventDefault(); 
-                if (mario.grounded) sfx.playJump();
-                keys['ArrowUp'] = true; 
-            };
-            btnJump.ontouchend = () => keys['ArrowUp'] = false;
+            if (btnLeft) {
+                btnLeft.ontouchstart = () => keys['ArrowLeft'] = true;
+                btnLeft.ontouchend = () => keys['ArrowLeft'] = false;
+            }
+            if (btnRight) {
+                btnRight.ontouchstart = () => keys['ArrowRight'] = true;
+                btnRight.ontouchend = () => keys['ArrowRight'] = false;
+            }
+            if (btnJump) {
+                btnJump.ontouchstart = () => {
+                    if (player.grounded) {
+                        player.vy = -10;
+                        player.grounded = false;
+                        playSound('jump');
+                    }
+                };
+            }
         }
 
-        function gameUpdate() {
-            if (keys['ArrowRight'] || keys['KeyD']) mario.vx = mario.speed;
-            else if (keys['ArrowLeft'] || keys['KeyA']) mario.vx = -mario.speed;
-            else mario.vx = 0;
+        function gameLoop() {
+            if (!gameRunning) return;
 
-            if ((keys['ArrowUp'] || keys['KeyW'] || keys['Space']) && mario.grounded) {
-                mario.vy = mario.jumpPower;
-                mario.grounded = false;
-                sfx.playJump();
+            // Kawalan Pergerakan
+            if (keys['ArrowRight'] || keys['KeyD']) {
+                player.vx = 4;
+            } else if (keys['ArrowLeft'] || keys['KeyA']) {
+                player.vx = -4;
+            } else {
+                player.vx *= 0.8;
             }
 
-            mario.vy += gravity;
-            mario.x += mario.vx;
-            mario.y += mario.vy;
-
-            // Kamera mengekor Mario
-            cameraX = mario.x - 150;
-            if (cameraX < 0) cameraX = 0;
-
-            if (mario.y + mario.height >= 340) {
-                mario.y = 340 - mario.height;
-                mario.vy = 0;
-                mario.grounded = true;
+            if ((keys['ArrowUp'] || keys['Space'] || keys['KeyW']) && player.grounded) {
+                player.vy = -10.5;
+                player.grounded = false;
+                playSound('jump');
             }
 
-            if (mario.x < 0) mario.x = 0;
+            // Graviti
+            player.vy += 0.55;
+            player.x += player.vx;
+            player.y += player.vy;
 
-            // Semakan pelanggaran blok [?]
+            // Halangan Sempadan Canvas
+            if (player.x < 0) player.x = 0;
+            if (player.x > 1550) player.x = 1550;
+
+            // Lantai
+            if (player.y + player.h >= 350) {
+                player.y = 350 - player.h;
+                player.vy = 0;
+                player.grounded = true;
+            }
+
+            // Pelanggaran Blok [?]
             blocks.forEach(b => {
                 if (!b.hit &&
-                    mario.x + mario.width > b.x &&
-                    mario.x < b.x + b.width &&
-                    mario.y <= b.y + b.height &&
-                    mario.y >= b.y + b.height - 12 &&
-                    mario.vy < 0) {
+                    player.x + player.w > b.x &&
+                    player.x < b.x + b.w &&
+                    player.y < b.y + b.h &&
+                    player.y + player.h > b.y) {
+
+                    // Jika melompat dari bawah hit blok
+                    if (player.vy < 0 && player.y > b.y + b.h - 12) {
                         b.hit = true;
-                        mario.vy = 2;
-                        sfx.playBlock();
-                        triggerGameQuestion(b);
+                        player.vy = 2;
+                        playSound('coin');
+                        openGameQuestion(b.questionIndex);
+                    }
                 }
             });
 
-            // Semakan Tiang Bendera Penamat
-            if (!flagpole.hit && mario.x + mario.width >= flagpole.x) {
-                flagpole.hit = true;
-                finishGame(true);
+            // Capai Bendera Penamat
+            if (player.x >= 1500) {
+                gameRunning = false;
+                finishGame();
                 return;
             }
 
-            renderGame();
+            // LUKIS KANVAS
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            if (lives > 0) {
-                gameLoopId = requestAnimationFrame(gameUpdate);
-            }
-        }
-
-        function renderGame() {
-            ctx.fillStyle = '#0b1329';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Kamera Bergerak Sesuai Dengan Pemain
+            const cameraX = Math.max(0, Math.min(player.x - 200, 1600 - canvas.width));
 
             ctx.save();
             ctx.translate(-cameraX, 0);
 
-            // Bintang & Latar Belakang
-            ctx.fillStyle = '#ffffff';
-            for(let i = 0; i < 40; i++) {
-                ctx.fillRect((i * 90) % (flagpole.x + 400), (i * 37) % 200 + 20, (i%2)+1, (i%2)+1);
-            }
+            // Latar Belakang & Langit Fantasi
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, 400);
+            bgGradient.addColorStop(0, '#0f172a');
+            bgGradient.addColorStop(1, '#1e1b4b');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, 1800, 400);
 
-            // Tanah Magis
-            ctx.fillStyle = '#10b981';
-            ctx.fillRect(0, 340, flagpole.x + 500, 10);
-            ctx.fillStyle = '#064e3b';
-            ctx.fillRect(0, 350, flagpole.x + 500, 50);
+            // Lantai Rumput
+            ctx.fillStyle = '#059669';
+            ctx.fillRect(0, 350, 1800, 50);
+            ctx.fillStyle = '#047857';
+            ctx.fillRect(0, 350, 1800, 8);
 
-            // Blok Soalan [?]
+            // Blok [?]
             blocks.forEach(b => {
-                if(b.hit) {
-                    ctx.fillStyle = '#334155';
-                    ctx.fillRect(b.x, b.y, b.width, b.height);
-                    ctx.strokeStyle = '#64748b';
-                    ctx.strokeRect(b.x, b.y, b.width, b.height);
+                if (b.hit) {
+                    ctx.fillStyle = '#475569';
+                    ctx.fillRect(b.x, b.y, b.w, b.h);
+                    ctx.strokeStyle = '#94a3b8';
+                    ctx.strokeRect(b.x, b.y, b.w, b.h);
                 } else {
                     ctx.fillStyle = '#f59e0b';
-                    ctx.fillRect(b.x, b.y, b.width, b.height);
-                    ctx.strokeStyle = '#fef08a';
+                    ctx.fillRect(b.x, b.y, b.w, b.h);
+                    ctx.strokeStyle = '#fbbf24';
                     ctx.lineWidth = 2;
-                    ctx.strokeRect(b.x, b.y, b.width, b.height);
-
-                    ctx.fillStyle = '#000000';
+                    ctx.strokeRect(b.x, b.y, b.w, b.h);
+                    ctx.fillStyle = '#78350f';
                     ctx.font = 'bold 20px sans-serif';
-                    ctx.fillText('?', b.x + 13, b.y + 26);
+                    ctx.fillText('?', b.x + 11, b.y + 25);
                 }
             });
 
-            // Tiang Bendera Penamat 🏁
+            // Bendera Penamat 🏁
             ctx.fillStyle = '#cbd5e1';
-            ctx.fillRect(flagpole.x, flagpole.y, flagpole.width, flagpole.height);
-            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(1520, 150, 8, 200);
+            ctx.fillStyle = '#ef4444';
             ctx.beginPath();
-            ctx.arc(flagpole.x + 10, flagpole.y, 12, 0, Math.PI * 2);
+            ctx.moveTo(1528, 150);
+            ctx.lineTo(1570, 170);
+            ctx.lineTo(1528, 190);
             ctx.fill();
 
-            // Bendera
+            // Pemain (Wira Jebat) 🏹
             ctx.fillStyle = '#10b981';
             ctx.beginPath();
-            ctx.moveTo(flagpole.x + flagpole.width, flagpole.y + 10);
-            ctx.lineTo(flagpole.x + flagpole.width + 45, flagpole.y + 30);
-            ctx.lineTo(flagpole.x + flagpole.width, flagpole.y + 50);
-            ctx.closePath();
+            ctx.roundRect(player.x, player.y, player.w, player.h, 6);
             ctx.fill();
-
-            // Mario / Watak JEBAT
-            ctx.fillStyle = '#10b981';
-            ctx.fillRect(mario.x, mario.y, mario.width, mario.height);
-            ctx.fillStyle = '#f59e0b';
-            ctx.fillRect(mario.x - 2, mario.y, mario.width + 4, 8);
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(mario.x + 18, mario.y + 12, 6, 6);
+            ctx.font = '18px sans-serif';
+            ctx.fillText('🏹', player.x + 4, player.y + 22);
 
             ctx.restore();
+
+            requestAnimationFrame(gameLoop);
         }
 
-        function triggerGameQuestion(block) {
-            const qData = gameQuestions[block.questionIndex] || gameQuestions[0];
-            const modal = document.getElementById('game-modal');
-            const qText = document.getElementById('game-question-text');
-            const optsContainer = document.getElementById('game-options');
-            const qNumText = document.getElementById('game-modal-qnum');
-
-            if (qNumText) qNumText.innerText = `Soalan ${block.questionIndex + 1} / ${gameQuestions.length}`;
-            qText.innerText = qData.q;
-            optsContainer.innerHTML = '';
-
-            qData.opts.forEach((opt, idx) => {
-                const btn = document.createElement('button');
-                btn.className = "w-full text-left p-3.5 rounded-xl border border-white/10 hover:border-amber-400 hover:bg-amber-500/10 font-semibold text-slate-200 transition text-sm flex justify-between items-center";
-                btn.innerHTML = `<span>${String.fromCharCode(65 + idx)}. ${opt}</span> <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>`;
-                btn.onclick = () => {
-                    answeredQuestionsCount++;
-                    document.getElementById('game-progress').innerText = `${answeredQuestionsCount} / ${gameQuestions.length}`;
-
-                    if(idx === qData.ans) {
-                        score += 25;
-                        document.getElementById('game-score').innerText = score;
-                        sfx.playCorrect();
-                        showModalAlert("🎉 TAHNIAH! Jawapan Anda Betul (+25 Mata)");
-                    } else {
-                        lives -= 1;
-                        document.getElementById('game-lives').innerText = '❤️ ' + lives;
-                        sfx.playWrong();
-                        showModalAlert("❌ ALAMAK! Jawapan Kurang Tepat (-1 Nyawa)");
-                    }
-
-                    modal.classList.add('hidden');
-                    lucide.createIcons();
-
-                    if (lives <= 0) {
-                        finishGame(false);
-                    } else if (answeredQuestionsCount >= gameQuestions.length) {
-                        finishGame(true);
-                    }
-                };
-                optsContainer.appendChild(btn);
-            });
-
-            modal.classList.remove('hidden');
-            lucide.createIcons();
+        function updateGameUI() {
+            document.getElementById('game-progress').innerText = `${currentQIndex} / 10`;
+            document.getElementById('game-score').innerText = player.score;
+            document.getElementById('game-lives').innerText = '❤️ '.repeat(player.lives);
         }
 
-        // Fungsi Penamat Permainan
-        function finishGame(isSuccess) {
-            if (gameLoopId) cancelAnimationFrame(gameLoopId);
+        function openGameQuestion(index) {
+            gameRunning = false;
+            const qData = questions[index];
+            document.getElementById('game-modal-qnum').innerText = `Soalan ${index + 1} / 10`;
+            document.getElementById('game-question-text').innerText = qData.q;
 
-            const modal = document.getElementById('game-finish-modal');
-            const title = document.getElementById('finish-title');
-            const subtitle = document.getElementById('finish-subtitle');
-            const icon = document.getElementById('finish-icon');
+            const optsDiv = document.getElementById('game-options');
+            optsDiv.innerHTML = qData.options.map((opt, i) => `
+                <button onclick="answerGameQuestion(${index}, ${i})" class="w-full text-left p-3.5 bg-slate-900/90 hover:bg-amber-500/20 hover:border-amber-400 border border-white/10 rounded-xl transition text-sm font-semibold flex items-center gap-3">
+                    <span class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-300 text-xs flex items-center justify-center font-bold">${String.fromCharCode(65 + i)}</span>
+                    ${opt}
+                </button>
+            `).join('');
+
+            document.getElementById('game-modal').classList.remove('hidden');
+        }
+
+        function answerGameQuestion(qIndex, selectedOpt) {
+            document.getElementById('game-modal').classList.add('hidden');
+            const qData = questions[qIndex];
+
+            if (selectedOpt === qData.ans) {
+                playSound('correct');
+                player.score += 25;
+                currentQIndex++;
+                window.showModalAlert("🎉 TEPAT SEKALI! (+25 Mata)");
+            } else {
+                playSound('wrong');
+                player.lives--;
+                window.showModalAlert(`❌ KURANG TEPAT! Jawapan betul: se${qData.options[qData.ans]}`);
+            }
+
+            updateGameUI();
+
+            if (player.lives <= 0) {
+                finishGame(true);
+            } else {
+                gameRunning = true;
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function finishGame(failed = false) {
+            gameRunning = false;
+            document.getElementById('final-game-score').innerText = player.score;
+            document.getElementById('final-game-questions').innerText = `${currentQIndex} / 10`;
+
             const starDisplay = document.getElementById('star-rating-display');
             const starText = document.getElementById('star-text');
 
-            document.getElementById('final-game-score').innerText = score;
-            document.getElementById('final-game-questions').innerText = `${answeredQuestionsCount} / ${gameQuestions.length}`;
+            let stars = "⭐⭐⭐⭐⭐";
+            let text = "Cemerlang Terbilang!";
 
-            // Pengiraan Bintang (1 hingga 5 Bintang ⭐)
-            const maxScore = gameQuestions.length * 25;
-            const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
-            let stars = "";
-            let starLabel = "";
-
-            if (percentage >= 90) {
-                stars = "⭐⭐⭐⭐⭐";
-                starLabel = "Cemerlang Terbilang! (5 Bintang)";
-            } else if (percentage >= 70) {
-                stars = "⭐⭐⭐⭐☆";
-                starLabel = "Sangat Baik! (4 Bintang)";
-            } else if (percentage >= 50) {
-                stars = "⭐⭐⭐☆☆";
-                starLabel = "Baik! (3 Bintang)";
-            } else if (percentage >= 30) {
-                stars = "⭐⭐☆☆☆";
-                starLabel = "Boleh Dipertingkatkan (2 Bintang)";
+            if (player.score >= 200) {
+                stars = "⭐⭐⭐⭐⭐"; text = "Cemerlang Terbilang! (100%)";
+            } else if (player.score >= 150) {
+                stars = "⭐⭐⭐⭐"; text = "Sangat Baik! (80%)";
+            } else if (player.score >= 100) {
+                stars = "⭐⭐⭐"; text = "Memuaskan! (60%)";
             } else {
-                stars = "⭐☆☆☆☆";
-                starLabel = "Teruskan Usaha! (1 Bintang)";
+                stars = "⭐⭐"; text = "Teruskan Usaha!";
             }
 
-            if (starDisplay) starDisplay.innerText = stars;
-            if (starText) starText.innerText = `${starLabel} (${Math.round(percentage)}%)`;
-
-            if (isSuccess) {
-                sfx.playWin();
-                if (icon) icon.innerText = "🏆";
-                if (title) title.innerText = "Kembara Tamat!";
-                if (subtitle) subtitle.innerText = "Tahniah! Anda telah berjaya menamatkan kembara!";
-            } else {
-                sfx.playGameOver();
-                if (icon) icon.innerText = "💔";
-                if (title) title.innerText = "Permainan Tamat";
-                if (subtitle) subtitle.innerText = "Kehabisan nyawa! Cuba lagi untuk memperbaiki markah.";
+            if (failed) {
+                stars = "⭐";
+                text = "Nyawa Kehabisan! Cuba Lagi.";
             }
 
-            if (modal) modal.classList.remove('hidden');
+            starDisplay.innerText = stars;
+            starText.innerText = text;
+
+            document.getElementById('game-finish-modal').classList.remove('hidden');
         }
 
-        let currentQuizLevel = 'mudah';
-        let currentQuizList = [];
-        let currentQuizIdx = 0;
+        // --- LOGIK KUIZ & SIJIL KEHORMATAN ---
+        let currentQuizQuestions = [];
+        let currentQuizIndex = 0;
         let quizScore = 0;
-        let studentData = { name: '', class: '' };
 
         function startQuiz() {
-            const nameInput = document.getElementById('student-name').value.trim();
-            const classInput = document.getElementById('student-class').value.trim();
+            const name = document.getElementById('student-name').value.trim();
+            const kelas = document.getElementById('student-class').value.trim();
 
-            if (!nameInput) {
-                showModalAlert("Sila masukkan Nama Penuh Murid dahulu!");
+            if (!name || !kelas) {
+                window.showModalAlert("Sila lengkapkan Nama Penuh & Kelas terlebih dahulu!");
                 return;
             }
 
-            studentData.name = nameInput;
-            studentData.class = classInput || 'Murid JEBAT';
-
-            const selectedRadio = document.querySelector('input[name="kuiz-level"]:checked');
-            currentQuizLevel = selectedRadio ? selectedRadio.value : 'mudah';
-            currentQuizList = quizData[currentQuizLevel] || quizData.mudah;
-
-            currentQuizIdx = 0;
             quizScore = 0;
+            currentQuizIndex = 0;
+
+            // Pilih 5 soalan rawak
+            currentQuizQuestions = [...questions].sort(() => 0.5 - Math.random()).slice(0, 5);
 
             document.getElementById('kuiz-setup-card').classList.add('hidden');
             document.getElementById('kuiz-play-card').classList.remove('hidden');
-            document.getElementById('kuiz-result-card').classList.add('hidden');
 
             renderQuizQuestion();
         }
 
         function renderQuizQuestion() {
-            const q = currentQuizList[currentQuizIdx];
-            document.getElementById('quiz-progress-text').innerText = `Soalan ${currentQuizIdx + 1} / ${currentQuizList.length}`;
-            document.getElementById('quiz-level-badge').innerText = `Aras ${currentQuizLevel}`;
+            const q = currentQuizQuestions[currentQuizIndex];
+            document.getElementById('quiz-progress-text').innerText = `Soalan ${currentQuizIndex + 1} / 5`;
             document.getElementById('quiz-question').innerText = q.q;
 
-            const optsContainer = document.getElementById('quiz-options');
-            optsContainer.innerHTML = '';
+            const opts = document.getElementById('quiz-options');
+            opts.innerHTML = q.options.map((opt, i) => `
+                <button onclick="submitQuizAnswer(${i})" class="w-full text-left p-3.5 bg-slate-900/90 hover:bg-purple-500/20 hover:border-purple-400 border border-white/10 rounded-xl transition text-sm font-semibold flex items-center gap-3">
+                    <span class="w-6 h-6 rounded-full bg-purple-500/20 text-purple-300 text-xs flex items-center justify-center font-bold">${String.fromCharCode(65 + i)}</span>
+                    ${opt}
+                </button>
+            `).join('');
 
-            const nextBtn = document.getElementById('quiz-next-btn');
-            nextBtn.classList.add('hidden');
-
-            q.options.forEach((opt, idx) => {
-                const btn = document.createElement('button');
-                btn.className = "w-full text-left p-3.5 rounded-xl border border-white/10 hover:border-purple-400 hover:bg-purple-950/30 font-semibold text-slate-200 transition text-sm flex justify-between items-center";
-                btn.innerHTML = `<span>${String.fromCharCode(65 + idx)}. ${opt}</span>`;
-                btn.onclick = () => selectQuizOption(idx, btn, q.ans);
-                optsContainer.appendChild(btn);
-            });
+            document.getElementById('quiz-next-btn').classList.add('hidden');
         }
 
-        function selectQuizOption(selectedIdx, btn, correctIdx) {
-            const optsContainer = document.getElementById('quiz-options');
-            const buttons = optsContainer.querySelectorAll('button');
-            buttons.forEach(b => b.disabled = true);
-
-            if (selectedIdx === correctIdx) {
+        function submitQuizAnswer(optIndex) {
+            const q = currentQuizQuestions[currentQuizIndex];
+            if (optIndex === q.ans) {
+                playSound('correct');
                 quizScore++;
-                btn.classList.add('bg-emerald-900/60', 'border-emerald-500', 'text-emerald-200');
             } else {
-                btn.classList.add('bg-red-900/60', 'border-red-500', 'text-red-200');
-                if (buttons[correctIdx]) {
-                    buttons[correctIdx].classList.add('bg-emerald-900/60', 'border-emerald-500', 'text-emerald-200');
-                }
+                playSound('wrong');
             }
 
-            document.getElementById('quiz-next-btn').classList.remove('hidden');
-        }
-
-        function nextQuizQuestion() {
-            currentQuizIdx++;
-            if (currentQuizIdx < currentQuizList.length) {
+            currentQuizIndex++;
+            if (currentQuizIndex < currentQuizQuestions.length) {
                 renderQuizQuestion();
             } else {
                 showQuizResult();
@@ -1545,14 +1512,28 @@
             document.getElementById('kuiz-play-card').classList.add('hidden');
             document.getElementById('kuiz-result-card').classList.remove('hidden');
 
-            const percent = Math.round((quizScore / currentQuizList.length) * 100);
-            document.getElementById('quiz-score-display').innerText = `${quizScore} / ${currentQuizList.length} (${percent}%)`;
+            document.getElementById('quiz-score-display').innerText = `${quizScore} / 5`;
 
-            document.getElementById('cert-name').innerText = studentData.name;
-            document.getElementById('cert-class').innerText = `Kelas / Sekolah: ${studentData.class}`;
-            document.getElementById('cert-score').innerText = `${percent}%`;
-            document.getElementById('cert-level').innerText = `Aras ${currentQuizLevel.toUpperCase()}`;
-            document.getElementById('cert-date').innerText = `Tarikh: ${new Date().toLocaleDateString('ms-MY')}`;
+            // Kemas Kini Sijil
+            const name = document.getElementById('student-name').value || "NAMA MURID";
+            const kelas = document.getElementById('student-class').value || "4 CEMERLANG";
+            const levelVal = document.querySelector('input[name="kuiz-level"]:checked').value;
+
+            document.getElementById('cert-name').innerText = name;
+            document.getElementById('cert-class').innerText = `Kelas / Sekolah: ${kelas}`;
+            document.getElementById('cert-score').innerText = `${(quizScore / 5) * 100}%`;
+            document.getElementById('cert-level').innerText = `Aras ${levelVal.toUpperCase()}`;
+            document.getElementById('cert-date').innerText = `Tarikh: ${new Date().toISOString().split('T')[0]}`;
+        }
+
+        function downloadCertificate() {
+            const certNode = document.getElementById('certificate-template');
+            html2canvas(certNode, { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Sijil-JEBAT-${document.getElementById('cert-name').innerText}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
         }
 
         function resetQuiz() {
@@ -1560,93 +1541,62 @@
             document.getElementById('kuiz-setup-card').classList.remove('hidden');
         }
 
-        function downloadCertificate() {
-            const certElement = document.getElementById('certificate-template');
-            if(!certElement) return;
+        // --- RENDER ZON PELAWAT UI ---
+        window.renderGuestbookUI = function() {
+            const list = document.getElementById('guestbook-list');
+            if (!list) return;
 
-            html2canvas(certElement, { scale: 2 }).then(canvas => {
-                const image = canvas.toDataURL("image/png");
-                const link = document.createElement('a');
-                link.download = `Sijil_JEBAT_${studentData.name.replace(/\s+/g, '_')}.png`;
-                link.href = image;
-                link.click();
-            });
-        }
-
-        // Paparan Senarai Komen Pelawat (Penggabungan Firestore + Google Sheet + Tempatan)
-        function renderGuestbookUI() {
-            const container = document.getElementById('guestbook-list');
-            if(!container) return;
-
-            const combinedMap = new Map();
-
-            (window.localSubmittedComments || []).forEach(c => {
-                const key = `${c.nama}_${c.mesej}`;
-                combinedMap.set(key, c);
-            });
-
-            (window.firebaseComments || []).forEach(c => {
-                const key = `${c.nama}_${c.mesej}`;
-                if (!combinedMap.has(key)) combinedMap.set(key, c);
-            });
-
-            (window.googleSheetComments || []).forEach(c => {
-                const key = `${c.nama}_${c.mesej}`;
-                if (!combinedMap.has(key)) combinedMap.set(key, c);
-            });
-
-            const allComments = Array.from(combinedMap.values());
+            const allComments = [
+                ...(window.localSubmittedComments || []),
+                ...(window.firebaseComments || []),
+                ...(window.googleSheetComments || [])
+            ];
 
             if (allComments.length === 0) {
-                container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">Belum ada ucapan pelawat. Jadilah yang pertama! ✨</div>`;
+                list.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">Belum ada ucapan. Jadilah pelawat pertama!</div>`;
                 return;
             }
 
-            container.innerHTML = '';
-            allComments.forEach(c => {
-                const tarikh = typeof c.timestamp === 'number' ? new Date(c.timestamp).toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : (c.timestamp || 'Baru sahaja');
-                const isGoogleSheet = c.source === 'Google Sheet';
-                const isLocal = c.source === 'Terkini';
-
-                const card = `
-                    <div class="bg-slate-900/60 p-4 rounded-xl border ${isLocal ? 'border-emerald-500/60 bg-emerald-950/20' : 'border-white/5'} space-y-1 hover:border-emerald-500/30 transition">
-                        <div class="flex justify-between items-start">
-                            <div class="font-bold text-emerald-300 text-xs sm:text-sm flex items-center gap-1.5">
-                                <span>${isGoogleSheet ? '📊' : (isLocal ? '✨' : '👤')}</span> ${escapeHtml(c.nama)} 
-                                <span class="text-[10px] text-slate-400 font-normal">(${escapeHtml(c.sekolah)})</span>
-                                ${isGoogleSheet ? '<span class="text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-mono">Sheet</span>' : ''}
-                                ${isLocal ? '<span class="text-[9px] bg-amber-950 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded font-mono">Baru Dihantar</span>' : ''}
-                            </div>
-                            <span class="text-[10px] text-slate-500">${tarikh}</span>
-                        </div>
-                        <p class="text-xs text-slate-300 italic pt-1">"${escapeHtml(c.mesej)}"</p>
+            list.innerHTML = allComments.map(c => `
+                <div class="glass-card p-4 rounded-xl border border-white/10 hover:border-emerald-500/30 transition">
+                    <div class="flex justify-between items-start mb-1.5">
+                        <h4 class="font-bold text-emerald-300 text-xs sm:text-sm">${c.nama}</h4>
+                        <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-white/5">
+                            ${c.sekolah || 'Pengembara Bahasa'}
+                        </span>
                     </div>
-                `;
-                container.innerHTML += card;
-            });
-        }
-        window.renderGuestbookUI = renderGuestbookUI;
+                    <p class="text-xs text-slate-200 leading-relaxed mb-2">"${c.mesej}"</p>
+                    <div class="text-[9px] text-slate-500 flex justify-between items-center">
+                        <span>🕒 ${c.timestamp ? new Date(c.timestamp).toLocaleString('ms-MY') : 'Google Sheet'}</span>
+                        <span class="text-emerald-400/80 font-mono">${c.source || 'Awan'}</span>
+                    </div>
+                </div>
+            `).join('');
+        };
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        // --- UTILITY MODAL ALERT ---
+        window.showModalAlert = function(msg) {
+            document.getElementById('modal-alert-text').innerText = msg;
+            document.getElementById('modal-alert').classList.remove('hidden');
+        };
+
+        function closeModalAlert() {
+            document.getElementById('modal-alert').classList.add('hidden');
         }
 
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // --- INISIALISASI PADA MUATKAN HALAMAN ---
         window.onload = function() {
             lucide.createIcons();
-            loadNota();
-            loadJelajahButtons();
-            renderJelajahDisplay();
+            renderNota();
+            renderJelajahButtons();
             
-            const savedUrl = window.globalAppsScriptUrl || localStorage.getItem('jebat_apps_script_url') || window.DEFAULT_APPS_SCRIPT_URL;
-            if (savedUrl) {
-                window.globalAppsScriptUrl = savedUrl;
-                if (typeof window.updateSheetStatusUI === 'function') {
-                    window.updateSheetStatusUI(true, savedUrl);
-                }
+            if (window.fetchGoogleSheetData) {
+                window.fetchGoogleSheetData();
             }
-
-            window.fetchGoogleSheetData();
         };
     </script>
 </body>
